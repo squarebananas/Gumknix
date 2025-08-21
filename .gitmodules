@@ -1,0 +1,4 @@
+[submodule "Submodules/GumSB"]
+	path = Submodules/GumSB
+	url = https://github.com/squarebananas/Gum.git
+	branch = Work-In-Progress-(Gumknix)

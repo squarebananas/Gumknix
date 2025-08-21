@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <ProjectGuid>{193f34c6-5a9e-4756-999d-a44d57971100}</ProjectGuid>
+    <RootNamespace>Gumknix</RootNamespace>
+    <AssemblyName>Gumknix</AssemblyName>
+    <DefineConstants>$(DefineConstants);BLAZORGL</DefineConstants>
+    <KniPlatform>BlazorGL</KniPlatform>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\js\fileSystemInterop.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="ModuleMonaco.cs" />
+    <Compile Include="ModuleFFmpeg.cs" />
+    <Compile Include="Pages\Index.razor.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net8.0' ">
+    <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="8.0.17" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.17" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.17" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <KniContentReference Include="..\GumknixContent\GumknixContent.mgcb">
+      <Link>Content\GumknixContent.mgcb</Link>
+    </KniContentReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Submodules\GumSB\MonoGameGum\KniGum\KniGum.csproj" />
+    <ProjectReference Include="..\..\Submodules\GumSB\Submodules\KniSB\Platforms\Kni.Platform.Blazor.GL.csproj" />
+    <ProjectReference Include="..\..\Submodules\GumSB\Submodules\KniSB\Submodules\WasmSB\Wasm.File\Wasm.File.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Gumknix.Shared\Gumknix.Shared.projitems" Label="Shared" />
+
+</Project>

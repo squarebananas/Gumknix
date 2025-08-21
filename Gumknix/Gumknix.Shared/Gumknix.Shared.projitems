@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>844a5b19-5607-41e6-96c8-348997b84355</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Gumknix</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AppletGuminal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AppletKniopad.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AppletMoknicoEditor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BaseAppletSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BaseDialog.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BaseSystemVisual.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AppletFileProperties.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ContextMenuFile.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ControlsFileViewer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DesktopIcon.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DialogFilePicker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DialogMultiChoice.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FileExtensionFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FileListBoxItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FileSystemItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AppletFileCabiKnit.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BaseApplet.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Desktop.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GumknixDemo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HTMLEmbed.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SettingsThemes.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TaskBar.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Gumknix.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TaskBarButton.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TaskBarStartButton.cs" />
+  </ItemGroup>
+</Project>
