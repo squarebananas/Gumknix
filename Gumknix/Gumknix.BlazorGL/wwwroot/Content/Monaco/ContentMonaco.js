@@ -4,12 +4,13 @@
     {
         var instance =
         {
-            uid: null,
-            elementId: 'editor',
-            editor: null,
+            editor: null
         };
-        instance.uid = nkJSObject.RegisterObject(instance);
-
+        return nkJSObject.RegisterObject(instance);
+    },
+    InitializeLoaderScript: function (uid)
+    {
+        var instance = nkJSObject.GetObject(uid);
         if (!window.monacoLoaderLoaded)
         {
             var loaderScript = document.createElement('script');
@@ -17,28 +18,28 @@
             loaderScript.onload = function ()
             {
                 window.monacoLoaderLoaded = true;
-                DotNet.invokeMethod('Gumknix', 'JsMonacoScriptLoaded', instance.uid);
+                DotNet.invokeMethod('Gumknix', 'JsMonacoScriptLoaded', instance.nkUid);
             };
             document.head.appendChild(loaderScript);
         }
         else
         {
-            DotNet.invokeMethod('Gumknix', 'JsMonacoScriptLoaded', instance.uid);
+            DotNet.invokeMethod('Gumknix', 'JsMonacoScriptLoaded', instance.nkUid);
         }
-        return instance.uid;
     },
-    Initialize: function (uid)
+    InitializeInstance: function (uid)
     {
         var instance = nkJSObject.GetObject(uid);
         require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs' } });
         require(['vs/editor/editor.main'], function ()
         {
-            instance.editor = monaco.editor.create(document.getElementById(instance.elementId),
+            instance.editor = monaco.editor.create(document.getElementById('editorUid' + instance.nkUid),
                 {
                     language: 'csharp',
                     theme: 'vs-dark',
+                    automaticLayout: true,
                 });
-            DotNet.invokeMethod('Gumknix', 'JsMonacoEditorLoaded', uid);
+            DotNet.invokeMethod('Gumknix', 'JsMonacoInstanceLoaded', uid);
         });
     },
     SetText: function (uid, d)

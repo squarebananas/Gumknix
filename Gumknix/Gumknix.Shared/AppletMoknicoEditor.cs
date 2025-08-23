@@ -31,8 +31,7 @@ namespace Gumknix
 
         public AppletMoknicoEditor(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
-            //base.Initialize(DefaultTitle, DefaultIcon);
-            base.Initialize(DefaultTitle, DefaultIcon, ResizeMode.NoResize);
+            base.Initialize(DefaultTitle, DefaultIcon);
 
             ColoredRectangleRuntime navigationBarBackground = new();
             navigationBarBackground.Color = new Color(32, 32, 32);
@@ -45,24 +44,12 @@ namespace Gumknix
             background.Color = new Color(70, 70, 80);
             background.Visible = false;
 
-            _editorHTMLEmbed = HTMLEmbed.Create(
-                """
-                <div id = "editor" style = "position: absolute; display: none;">
-                </div>
-                """);
-
-            _svgCutoutHTMLEmbed = HTMLEmbed.Create(
-                """
-                <svg id="svgcutout" width="0" height="0" style="position:absolute;">
-                </svg>
-                """);
-
             _monaco = ModuleMonaco.Create();
             _monaco.OnScriptLoaded += (s, e) =>
             {
-                _monaco.Initialize();
+                _monaco.InitializeInstance();
             };
-            _monaco.OnEditorLoaded += (s, e) =>
+            _monaco.OnInstanceLoaded += (s, e) =>
             {
                 if (args?.Length >= 1)
                 {
@@ -71,6 +58,20 @@ namespace Gumknix
                         ReadFile(fileSystemItem);
                 }
             };
+
+            _editorHTMLEmbed = HTMLEmbed.Create(
+                $"""
+                <div id = "editorUid{_monaco.Uid}" style = "position: absolute; display: none;">
+                </div>
+                """);
+
+            _svgCutoutHTMLEmbed = HTMLEmbed.Create(
+                $"""
+                <svg id="svgCutoutUid{_monaco.Uid}" width="0" height="0" style="position:absolute;">
+                </svg>
+                """);
+            
+            _monaco.InitializeLoaderScript();
 #endif
         }
 
@@ -130,7 +131,7 @@ namespace Gumknix
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"  <defs>");
-            sb.AppendLine($"    <mask id=\"cutout\">");
+            sb.AppendLine($"    <mask id=\"cutoutUid{_monaco.Uid}\">");
             //sb.AppendLine($"      <rect x=\"{0}\" y=\"{0}\" width=\"{1000}\" height=\"{1000}\" fill=\"black\"/>");
             sb.AppendLine($"      <rect x=\"{area.Left}\" y=\"{area.Top}\" width=\"{area.Width}\" height=\"{area.Height}\" fill=\"white\"/>");
             for (int i = 0; i < rectangles.Count; i++)
@@ -149,7 +150,7 @@ namespace Gumknix
                 _editorHTMLEmbed.Style.SetProperty("top", $"{Window.AbsoluteTop + 50}px");
                 _editorHTMLEmbed.Style.SetProperty("width", $"{Window.ActualWidth - 100}px");
                 _editorHTMLEmbed.Style.SetProperty("height", $"{Window.ActualHeight - 100}px");
-                _editorHTMLEmbed.Style.SetProperty("mask", "url(#cutout)");
+                _editorHTMLEmbed.Style.SetProperty("mask", $"url(#cutoutUid{_monaco.Uid})");
             }
             else
             {

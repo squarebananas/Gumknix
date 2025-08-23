@@ -11,7 +11,7 @@ namespace Gumknix
         public delegate void OnLogDelegate(object sender, string message);
 
         public event EventHandler<EventArgs> OnScriptLoaded;
-        public event EventHandler<EventArgs> OnEditorLoaded;
+        public event EventHandler<EventArgs> OnInstanceLoaded;
 
         internal ModuleMonaco(int uid) : base(uid)
         {
@@ -30,9 +30,14 @@ namespace Gumknix
             return new ModuleMonaco(uid);
         }
 
-        public void Initialize()
+        public void InitializeLoaderScript()
         {
-            Invoke("contentMonaco.Initialize");
+            Invoke("contentMonaco.InitializeLoaderScript");
+        }
+
+        public void InitializeInstance()
+        {
+            Invoke("contentMonaco.InitializeInstance");
         }
 
         public void SetText(string text)
@@ -58,13 +63,13 @@ namespace Gumknix
         }
 
         [JSInvokable]
-        public static void JsMonacoEditorLoaded(int uid)
+        public static void JsMonacoInstanceLoaded(int uid)
         {
             ModuleMonaco monaco = ModuleMonaco.FromUid(uid);
             if (monaco == null)
                 return;
 
-            var handler = monaco.OnEditorLoaded;
+            var handler = monaco.OnInstanceLoaded;
             if (handler != null)
                 handler(monaco, EventArgs.Empty);
         }
