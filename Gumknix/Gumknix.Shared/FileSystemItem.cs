@@ -311,7 +311,7 @@ namespace Gumknix
         public async Task CopyFile(FileSystemItem destinationDirectory = null, string newName = null, bool preserveOriginal = true)
         {
 #if BLAZORGL
-            FileSystemDirectoryHandle sourceDirectoryHandle = Parent.Handle as FileSystemDirectoryHandle;
+            FileSystemDirectoryHandle sourceDirectoryHandle = Parent?.Handle as FileSystemDirectoryHandle;
             FileSystemDirectoryHandle destinationDirectoryHandle = destinationDirectory?.Handle as FileSystemDirectoryHandle;
 
             newName ??= Name;
@@ -329,7 +329,7 @@ namespace Gumknix
             await writableFileStream.Truncate((ulong)blob.Size);
             await writableFileStream.Close();
 
-            if (!preserveOriginal)
+            if (!preserveOriginal && (sourceDirectoryHandle != null))
                 await sourceDirectoryHandle.RemoveEntry(fileHandle.Name, false);
 #endif
         }
