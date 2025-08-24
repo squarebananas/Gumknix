@@ -49,6 +49,29 @@
         var t = nkJSObject.ReadString(d + 0);
         ed.setValue(t);
     },
+    GetLanguages: function ()
+    {
+        var langs = monaco.languages.getLanguages();
+        var arr = [];
+        for (var i = 0; i < langs.length; i++)
+        {
+            var lang =
+            {
+                Id: langs[i].id,
+                Extensions: langs[i].extensions
+            };
+            arr.push(lang);
+        }
+        var js = JSON.stringify(arr);
+        return js;
+    },
+    SetLanguage: function (uid, d)
+    {
+        var instance = nkJSObject.GetObject(uid);
+        var ed = instance.editor;
+        var l = nkJSObject.ReadString(d + 0);
+        monaco.editor.setModelLanguage(ed.getModel(), l);
+    },
     Close: function (uid)
     {
         var instance = nkJSObject.GetObject(uid);

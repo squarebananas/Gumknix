@@ -23,10 +23,12 @@ namespace Gumknix
         public static readonly string DefaultIcon = "\uEE71";
 
 #if BLAZORGL
+        private ModuleMonaco _monaco;
+
         private HTMLEmbed _editorHTMLEmbed;
         private HTMLEmbed _svgCutoutHTMLEmbed;
 
-        private ModuleMonaco _monaco;
+        public ModuleMonaco.LanguageDefinition[] LanguageDefinitions { get; private set; }
 #endif
 
         public AppletMoknicoEditor(Gumknix gumknix, object[] args = null) : base(gumknix, args)
@@ -45,12 +47,14 @@ namespace Gumknix
             background.Visible = false;
 
             _monaco = ModuleMonaco.Create();
-            _monaco.OnScriptLoaded += (s, e) =>
-            {
-                _monaco.InitializeInstance();
-            };
+            _monaco.OnScriptLoaded += (s, e) => _monaco.InitializeInstance();
             _monaco.OnInstanceLoaded += (s, e) =>
             {
+                LanguageDefinitions = _monaco.GetLanguages();
+                for (int i = 0; i < LanguageDefinitions.Length; i++)
+                    for (int j = 0; j < LanguageDefinitions[i].Extensions?.Length; j++)
+                        Gumknix.ExtensionsDefaultApplets.TryAdd(LanguageDefinitions[i].Extensions[j], new(typeof(AppletMoknicoEditor), DefaultIcon));
+
                 if (args?.Length >= 1)
                 {
                     FileSystemItem fileSystemItem = args[0] as FileSystemItem;
@@ -177,6 +181,9 @@ namespace Gumknix
                         {
                             if (t.IsCompletedSuccessfully && t.Result != null)
                             {
+                                ModuleMonaco.LanguageDefinition language = GetLanguageDefinitionFromFileExtension(fileItem.Extension);
+                                _monaco.SetLanguage(language?.Id ?? "plaintext");
+
                                 string text = textTask.Result;
                                 _monaco.SetText(text);
                             }
@@ -188,6 +195,18 @@ namespace Gumknix
             catch (Exception e)
             {
             }
+        }
+
+        public ModuleMonaco.LanguageDefinition GetLanguageDefinitionFromFileExtension(string extension)
+        {
+            for (int i = 0; i < LanguageDefinitions.Length; i++)
+            {
+                ModuleMonaco.LanguageDefinition language = LanguageDefinitions[i];
+                for (int j = 0; j < language.Extensions?.Length; j++)
+                    if (extension == language.Extensions[j])
+                        return language;
+            }
+            return null;
         }
 
         protected override void Close()

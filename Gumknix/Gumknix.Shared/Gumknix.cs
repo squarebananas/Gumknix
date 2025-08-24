@@ -288,19 +288,18 @@ namespace Gumknix
             ExtensionsDefaultApplets = new Dictionary<string, FileSystemItem.DefaultAppletInfo>
             {
                 { ".txt", new(typeof(AppletKniopad), AppletKniopad.DefaultIcon) },
-                { ".md", new(typeof(AppletKniopad), AppletKniopad.DefaultIcon) },
 
                 { ".c", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".cpp", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".cs", new(typeof(AppletMoknicoEditor), "\uF0DB") },
                 { ".css", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".go", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".htm", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".html", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".java", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".js", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".json", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
+                { ".md", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".py", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
+                { ".ts", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
                 { ".xml", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) }
             };
         }
