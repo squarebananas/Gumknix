@@ -29,6 +29,9 @@ namespace Gumknix
         private int _gridMaxVisibleX;
         private int _gridMaxVisibleY;
 
+        public Rectangle Bounds => new Rectangle((int)_panel.Visual.AbsoluteLeft, (int)_panel.Visual.AbsoluteTop,
+            (int)_panel.Visual.GetAbsoluteWidth(), (int)_panel.Visual.GetAbsoluteHeight());
+
         private ContextMenuFile _contextMenu;
 
         private TextBox _renameTextBox;
@@ -172,12 +175,13 @@ namespace Gumknix
 
         public void AddDefaultDesktopItems()
         {
-            DesktopIcon fileCabiKnit = new(this, typeof(AppletFileCabiKnit));
-            AddIcon(fileCabiKnit);
-            DesktopIcon kniopad = new(this, typeof(AppletKniopad));
-            AddIcon(kniopad);
-            DesktopIcon moknicoEditor = new(this, typeof(AppletMoknicoEditor));
-            AddIcon(moknicoEditor);
+            AddIcon(new(this, typeof(AppletFileCabiKnit)));
+            AddIcon(new(this, typeof(AppletKniopad)));
+            AddIcon(new(this, typeof(AppletKniSCode)));
+            AddIcon(new(this, typeof(AppletConsole)));
+            AddIcon(new(this, typeof(AppletKniGameComponentRunner)));
+            AddIcon(new(this, typeof(AppletGumternetExplorer)));
+            AddIcon(new(this, typeof(AppletGumToolbox)));
         }
 
         public void Update()

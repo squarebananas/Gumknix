@@ -32,7 +32,7 @@ namespace Gumknix
         {
             GumService.Initialize(this, DefaultVisualsVersion.V2);
 
-            Gumknix = new Gumknix();
+            Gumknix = new Gumknix(Services);
 
             base.Initialize();
         }
@@ -47,7 +47,7 @@ namespace Gumknix
 
         protected override void Update(GameTime gameTime)
         {
-            Gumknix.UpdatePreGum();
+            Gumknix.UpdatePreGum(gameTime);
 
             Gum.Wireframe.GraphicalUiElement.CanvasWidth = Window.ClientBounds.Width;
             Gum.Wireframe.GraphicalUiElement.CanvasHeight = Window.ClientBounds.Height;
@@ -60,6 +60,8 @@ namespace Gumknix
 
         protected override void Draw(GameTime gameTime)
         {
+            Gumknix.Draw(gameTime);
+
             GraphicsDevice.Clear(Gumknix.SettingsThemes.CurrentTheme.DesktopColor);
 
             GumService.Draw();

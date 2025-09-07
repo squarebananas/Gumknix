@@ -121,6 +121,13 @@ namespace Gumknix
             menuItemEdit.Items.Add(menuItemEditPaste);
             menuItemEditPaste.Clicked += (s, e) => _textBox.Paste();
 
+
+            MenuItem menuItemEditSelectAll = new();
+            menuItemEditSelectAll.Header = "Select All";
+            menuItemEditSelectAll.Dock(Dock.FillHorizontally);
+            menuItemEdit.Items.Add(menuItemEditSelectAll);
+            menuItemEditSelectAll.Clicked += (s, e) => _textBox.SelectAll();
+
             MenuItem menuItemView = new();
             menuItemView.Header = "View";
             _menu.Items.Add(menuItemView);
@@ -167,6 +174,10 @@ namespace Gumknix
                 {
                     Task readTask = ReadFile(fileSystemItem);
                 }
+
+                string defaultText = args[0] as string;
+                if (defaultText != null)
+                    _textBox.Text = defaultText;
             }
         }
 

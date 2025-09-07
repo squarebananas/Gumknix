@@ -200,7 +200,7 @@ namespace Gumknix
                 {
                     if (t.IsCompletedSuccessfully && t.Result != null)
                     {
-                        File file = t.Result;
+                        nkast.Wasm.File.File file = t.Result;
                         string url = Url.CreateObjectURL(file);
                         Url.DownloadFromURL(url, file.Name);
                     }

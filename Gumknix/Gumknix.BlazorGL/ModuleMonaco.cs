@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.JSInterop;
 using nkast.Wasm.JSInterop;
 
@@ -15,6 +16,45 @@ namespace Gumknix
         {
             public string Id { get; set; }
             public string[] Extensions { get; set; }
+        }
+
+        public class CompletionItemInfo
+        {
+            public string FullName { get; set; }
+            public int KindEnumValue { get; set; }
+        }
+
+        public enum CompletionItemKind
+        {
+            Method = 0,
+            Function = 1,
+            Constructor = 2,
+            Field = 3,
+            Variable = 4,
+            Class = 5,
+            Struct = 6,
+            Interface = 7,
+            Module = 8,
+            Property = 9,
+            Event = 10,
+            Operator = 11,
+            Unit = 12,
+            Value = 13,
+            Constant = 14,
+            Enum = 15,
+            EnumMember = 16,
+            Keyword = 17,
+            Text = 18,
+            Color = 19,
+            File = 20,
+            Reference = 21,
+            Customcolor = 22,
+            Folder = 23,
+            TypeParameter = 24,
+            User = 25,
+            Issue = 26,
+            Tool = 27,
+            Snippet = 28
         }
 
         internal ModuleMonaco(int uid) : base(uid)
@@ -44,6 +84,11 @@ namespace Gumknix
             Invoke("contentMonaco.InitializeInstance");
         }
 
+        public string GetText()
+        {
+            return InvokeRetString("contentMonaco.GetText");
+        }
+
         public void SetText(string text)
         {
             Invoke("contentMonaco.SetText", text);
@@ -59,6 +104,12 @@ namespace Gumknix
         public void SetLanguage(string language)
         {
             Invoke("contentMonaco.SetLanguage", language);
+        }
+
+        public void RegisterCompletionItemProvider(List<CompletionItemInfo> typeInfos)
+        {
+            string jsonString = System.Text.Json.JsonSerializer.Serialize(typeInfos);
+            Invoke("contentMonaco.RegisterCompletionItemProvider", jsonString);
         }
 
         public void Close()

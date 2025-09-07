@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
 using MonoGameGum;
 using RenderingLibrary;
 using RenderingLibrary.Graphics;
@@ -16,6 +17,9 @@ namespace Gumknix
 {
     public class Gumknix
     {
+        public GameServiceContainer GameServiceContainer { get; init; }
+        public GameTime GameTime { get; set; }
+
         public Desktop Desktop { get; private set; }
         public TaskBar TaskBar { get; private set; }
         public List<BaseApplet> RunningApplets { get; private set; }
@@ -44,13 +48,19 @@ namespace Gumknix
 
         public SettingsThemes SettingsThemes;
 
-        public Gumknix()
+        public EmbeddedMode EmbeddedMode { get; private set; }
+
+        public Gumknix(GameServiceContainer gameServiceContainer)
         {
+            GameServiceContainer = gameServiceContainer;
+
             AvailableApplets = [
                 typeof(AppletKniopad),
                 typeof(AppletFileCabiKnit),
-                typeof(AppletMoknicoEditor),
-                typeof(AppletGuminal)
+                typeof(AppletKniSCode),
+                typeof(AppletGuminal),
+                typeof(AppletGumternetExplorer),
+                typeof(AppletGumToolbox)
                 ];
 
             SetupSystemStorage();
@@ -66,10 +76,21 @@ namespace Gumknix
             SetupDragDrop();
 
             SettingsThemes = new(this);
+
+            EmbeddedMode = new(this);
+
+            Uri uri = new(Program.NavigationManager.Uri);
+            string queryString = uri.Query;
+
+
         }
 
-        public void UpdatePreGum()
+        public void UpdatePreGum(GameTime gameTime)
         {
+            GameTime = gameTime;
+
+            EmbeddedMode.Update(gameTime);
+
             Desktop.Update();
             TaskBar.Update();
 
@@ -108,12 +129,21 @@ namespace Gumknix
                 RunningApplets[i].PostGumUpdate();
         }
 
-        public void StartApplet(Type appletType, object[] arguments = null)
+        public void Draw(GameTime gameTime)
+        {
+            GameTime = gameTime;
+
+            for (int i = 0; i < RunningApplets.Count; i++)
+                RunningApplets[i].Draw();
+        }
+
+        public BaseApplet StartApplet(Type appletType, object[] arguments = null)
         {
             BaseApplet applet = Activator.CreateInstance(appletType, [this, arguments ?? null]) as BaseApplet;
             RunningApplets.Add(applet);
             TaskBar.AddRunningApplet(applet);
             applet.MoveToFront();
+            return applet;
         }
 
         public void FocusApplet(BaseApplet applet)
@@ -289,18 +319,18 @@ namespace Gumknix
             {
                 { ".txt", new(typeof(AppletKniopad), AppletKniopad.DefaultIcon) },
 
-                { ".c", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".cpp", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".cs", new(typeof(AppletMoknicoEditor), "\uF0DB") },
-                { ".css", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".htm", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".html", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".js", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".json", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".md", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".py", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".ts", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) },
-                { ".xml", new(typeof(AppletMoknicoEditor), AppletMoknicoEditor.DefaultIcon) }
+                { ".c", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".cpp", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".cs", new(typeof(AppletKniSCode), "\uF0DB") },
+                { ".css", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".htm", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".html", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".js", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".json", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".md", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".py", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".ts", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".xml", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) }
             };
         }
 
@@ -350,6 +380,26 @@ namespace Gumknix
                 });
             };
 #endif
+        }
+
+        public static Dictionary<string, string> GetParameterDictionary(string queryString)
+        {
+            Dictionary<string, string> parameters = [];
+            if (string.IsNullOrWhiteSpace(queryString))
+                return parameters;
+
+            if (queryString.StartsWith("?"))
+                queryString = queryString.Substring(1);
+
+            string[] pairs = queryString.Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (string pair in pairs)
+            {
+                string[] keyValuePair = pair.Split('=', 2);
+                string key = Uri.UnescapeDataString(keyValuePair[0]);
+                string value = keyValuePair.Length == 2 ? Uri.UnescapeDataString(keyValuePair[1]) : string.Empty;
+                parameters[key] = value;
+            }
+            return parameters;
         }
     }
 }

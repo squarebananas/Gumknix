@@ -76,6 +76,12 @@ namespace Gumknix
 
             Click += (s, e) =>
             {
+                if (taskBar.GumknixInstance.EmbeddedMode.EmbeddedInPage == true)
+                {
+                    taskBar.GumknixInstance.EmbeddedMode.SwapRequest = true;
+                    return;
+                }
+
                 if (taskBar.IsStartOpen == false)
                     taskBar.ShowStart();
                 else

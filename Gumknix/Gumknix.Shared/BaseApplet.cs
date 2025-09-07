@@ -52,14 +52,18 @@ namespace Gumknix
 
         public BaseApplet(Gumknix gumknix, object[] args = null) : base(gumknix) { }
 
-        protected virtual void Initialize(string title, string icon, ResizeMode resizeMode = ResizeMode.CanResize)
+        protected virtual void Initialize(string title, string icon, int width = 900, int height = 450, ResizeMode resizeMode = ResizeMode.CanResize)
         {
             Title = title;
             Icon = icon;
 
+            Rectangle desktopBounds = GumknixInstance.Desktop.Bounds;
+            width = Math.Min(width, desktopBounds.Width);
+            height = Math.Min(height, desktopBounds.Height);
+
             Window = new();
-            Window.Visual.Width = 900;
-            Window.Visual.Height = 450;
+            Window.Visual.Width = width;
+            Window.Visual.Height = height;
             Window.Visual.Anchor(Anchor.Center);
             Window.ResizeMode = resizeMode;
 
@@ -233,8 +237,13 @@ namespace Gumknix
 
         public virtual void PostGumUpdate() { }
 
+        public virtual void Draw() { }
+
         public void SetTitle(string title)
         {
+            if (Title == title)
+                return;
+
             Title = title;
             _titleBarLabel.Text = title;
             TaskBarButton.Text = title;

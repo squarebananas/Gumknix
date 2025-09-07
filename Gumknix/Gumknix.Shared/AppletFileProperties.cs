@@ -36,7 +36,7 @@ namespace Gumknix
             }
 #endif
 
-            Initialize($"{FileSystemItem.Name} Properties", FileSystemItem.Icon, ResizeMode.NoResize);
+            Initialize($"{FileSystemItem.Name} Properties", FileSystemItem.Icon, resizeMode: ResizeMode.NoResize);
 
             ColoredRectangleRuntime background = new();
             background.Color = Gum.Forms.DefaultVisuals.Styling.ActiveStyle.Colors.LightGray;

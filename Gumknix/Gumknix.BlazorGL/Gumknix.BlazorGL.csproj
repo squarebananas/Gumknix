@@ -16,6 +16,7 @@
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -45,6 +46,11 @@
     <KniContentReference Include="..\GumknixContent\GumknixContent.mgcb">
       <Link>Content\GumknixContent.mgcb</Link>
     </KniContentReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MetadataReferenceService.BlazorWasm" Version="0.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
   </ItemGroup>
 
   <ItemGroup>

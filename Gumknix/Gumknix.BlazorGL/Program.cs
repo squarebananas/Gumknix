@@ -12,6 +12,8 @@ namespace Gumknix
 {
     internal class Program
     {
+        public static NavigationManager NavigationManager { get; set; }
+
         private static async Task Main(string[] args)
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -24,6 +26,7 @@ namespace Gumknix
             builder.Services.InjectClipboard();
             ClipboardImplementation.InjectedClipboard =
                 builder.Services.BuildServiceProvider().GetRequiredService<IClipboard>();
+            NavigationManager = builder.Services.BuildServiceProvider().GetRequiredService<NavigationManager>();
             await builder.Build().RunAsync();
         }
 
