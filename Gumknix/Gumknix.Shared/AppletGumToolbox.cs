@@ -592,7 +592,7 @@ namespace Gumknix
             }
             if (propertyInfo == null)
             {
-                elementObject = (elementItem.FrameworkElement.Visual as TextBoxVisual).TextInstance;
+                elementObject = (elementItem.FrameworkElement.Visual as TextBoxVisual)?.TextInstance;
                 propertyInfo = elementObject?.GetType().GetProperty(propertyName);
             }
             if (propertyInfo == null)
