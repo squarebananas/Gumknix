@@ -13,6 +13,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)AppletGuminal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AppletGumternetExplorer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AppletGumToolbox.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)KniSBuild\ProjectFile.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EmbeddedMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PseudoSystem\System.ConsoleKeyInfo.cs" />
     <Compile Include="..\Gumknix.Shared\AppletKniGameComponentRunner.cs" />

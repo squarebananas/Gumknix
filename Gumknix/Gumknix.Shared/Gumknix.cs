@@ -322,13 +322,16 @@ namespace Gumknix
                 { ".c", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".cpp", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".cs", new(typeof(AppletKniSCode), "\uF0DB") },
+                { ".csproj", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".css", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".htm", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".html", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".js", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".json", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".md", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".projitems", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".py", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".shproj", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".ts", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".xml", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) }
             };

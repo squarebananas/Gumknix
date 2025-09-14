@@ -26,10 +26,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="wwwroot\js\fileSystemInterop.js" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="ModuleMonaco.cs" />
     <Compile Include="ModuleFFmpeg.cs" />
     <Compile Include="Pages\Index.razor.cs" />

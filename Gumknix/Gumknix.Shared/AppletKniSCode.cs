@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-//using Microsoft.CodeAnalysis.VisualBasic;
-//using Microsoft.CodeAnalysis.VisualBasic.Syntax;
 using Microsoft.CodeAnalysis.Emit;
+
 using Microsoft.Xna.Framework;
 using Gum.DataTypes;
 using Gum.Forms;
@@ -23,8 +24,6 @@ using MonoGameGum.GueDeriving;
 
 using MetadataReferenceService.Abstractions.Types;
 using MetadataReferenceService.BlazorWasm;
-using System.IO.Compression;
-
 
 #if BLAZORGL
 using nkast.Wasm.Canvas;
@@ -32,6 +31,8 @@ using nkast.Wasm.Dom;
 using nkast.Wasm.File;
 using nkast.Wasm.FileSystem;
 #endif
+
+using Gumknix.KniSBuild;
 
 namespace Gumknix
 {
@@ -53,9 +54,15 @@ namespace Gumknix
         private ColoredRectangleRuntime _background;
         private Menu _menu;
         private StackPanel _stackPanel;
+        private StackPanel _mainToolbar;
         private Button compileButton;
+        private ComboBox optimizationLevelComboBox;
+
+        private Dictionary<string, string> sourceFiles = [];
 
         private static BlazorWasmMetadataReferenceService _referenceService;
+
+        public OptimizationLevel OptimizationLevel { get; private set; } = OptimizationLevel.Release;
 
         private Assembly _loadedAssembly;
 
@@ -190,6 +197,12 @@ namespace Gumknix
             _stackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             _background.AddChild(_stackPanel);
 
+            _mainToolbar = new();
+            _mainToolbar.Orientation = Orientation.Vertical;
+            _mainToolbar.Dock(Dock.SizeToChildren);
+            _mainToolbar.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
+            _stackPanel.AddChild(_mainToolbar);
+
             compileButton = new();
             compileButton.Text = "Compile";
             compileButton.Visual.X = 5;
@@ -200,7 +213,13 @@ namespace Gumknix
                 Task task = Compile();
                 task.ContinueWith(t => { compileButton.IsEnabled = true; });
             };
-            _stackPanel.AddChild(compileButton);
+            _mainToolbar.AddChild(compileButton);
+
+            optimizationLevelComboBox = new();
+            optimizationLevelComboBox.Items.Add("Debug");
+            optimizationLevelComboBox.Items.Add("Release");
+            optimizationLevelComboBox.SelectedIndex = 1;
+            _mainToolbar.AddChild(optimizationLevelComboBox);
 
 #if BLAZORGL
             _monaco = ModuleMonaco.Create();
@@ -211,6 +230,10 @@ namespace Gumknix
                 for (int i = 0; i < LanguageDefinitions.Length; i++)
                     for (int j = 0; j < LanguageDefinitions[i].Extensions?.Length; j++)
                         Gumknix.ExtensionsDefaultApplets.TryAdd(LanguageDefinitions[i].Extensions[j], new(typeof(AppletKniSCode), DefaultIcon));
+
+                ModuleMonaco.LanguageDefinition xmlLanguageDefinition = LanguageDefinitions.Where(l => l.Id == "xml").First();
+                xmlLanguageDefinition.AddExtension(".projitems");
+                xmlLanguageDefinition.AddExtension(".shproj");
 
                 if (args?.Length >= 1)
                 {
@@ -409,14 +432,10 @@ namespace Gumknix
             string sourceCode = _monaco.GetText();
 
             CSharpParseOptions cSharpParseOptions = CSharpParseOptions.Default;
-            cSharpParseOptions.WithLanguageVersion(Microsoft.CodeAnalysis.CSharp.LanguageVersion.LatestMajor);
+            cSharpParseOptions.WithLanguageVersion(LanguageVersion.LatestMajor);
             cSharpParseOptions.WithPreprocessorSymbols(preprocessorSymbols);
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
 
-            //VisualBasicParseOptions vbParseOptions = VisualBasicParseOptions.Default;
-            //vbParseOptions.WithLanguageVersion(Microsoft.CodeAnalysis.VisualBasic.LanguageVersion.Latest);
-            //vbParseOptions.WithPreprocessorSymbols(preprocessorSymbols);
-            //SyntaxTree syntaxTree = VisualBasicSyntaxTree.ParseText(sourceCode, vbParseOptions);
 
             CompilationUnitSyntax root = syntaxTree.GetRoot() as CompilationUnitSyntax;
             bool topLevelStatementsFound = false;
@@ -493,6 +512,11 @@ namespace Gumknix
 
             List<SyntaxTree> syntaxTrees = [syntaxTree];
 
+            if (sourceCode.Contains("TestKNIGameClass2"))
+            {
+                SyntaxTree syntaxTree2 = CSharpSyntaxTree.ParseText(TestClass2(), cSharpParseOptions);
+                syntaxTrees.Add(syntaxTree2);
+            }
 
             HashSet<string> assembliesRequired = [];
             assembliesRequired.Add("System.Private.CoreLib");
@@ -553,7 +577,7 @@ namespace Gumknix
                 reportSuppressedDiagnostics: true,
                 metadataImportOptions: MetadataImportOptions.Public,
                 allowUnsafe: true,
-                optimizationLevel: OptimizationLevel.Release
+                optimizationLevel: OptimizationLevel
             );
 
             CSharpCompilation compilation = CSharpCompilation.Create(outputAssemblyName, syntaxTrees, metadataReferencesArray, compilationOptions);
@@ -632,14 +656,35 @@ namespace Gumknix
                         nkast.Wasm.File.Blob blob = file.Result;
 
                         Task<string> textTask = blob.Text();
-                        textTask.ContinueWith(t =>
+                        textTask.ContinueWith(async t =>
                         {
                             if (t.IsCompletedSuccessfully && t.Result != null)
                             {
-                                ModuleMonaco.LanguageDefinition language = GetLanguageDefinitionFromFileExtension(fileItem.Extension);
-                                _monaco.SetLanguage(language?.Id ?? "plaintext");
-
                                 string text = textTask.Result;
+
+                                ProjectFile projectFile = null;
+                                if (fileItem.Extension == ".csproj")
+                                {
+                                    projectFile = ProjectFile.Parse(fileItem, text, fileItem.Extension);
+                                    Task resolveFilesTask = projectFile.ResolveFiles();
+                                    await resolveFilesTask.ContinueWith(t =>
+                                    {
+                                        string log = projectFile.Log.ToString();
+                                        GumknixInstance.StartApplet(typeof(AppletKniopad), [log]);
+                                    }
+                                    );
+                                }
+                                else if (fileItem.Extension == ".cs")
+                                {
+                                    sourceFiles.Add(fileItem.Name, text);
+                                }
+
+                                ModuleMonaco.LanguageDefinition language = GetLanguageDefinitionFromFileExtension(fileItem.Extension);
+                                if (language == null)
+                                    language = GetLanguageDefinitionFromFileExtension(".txt");
+
+
+                                _monaco.SetLanguage(language?.Id ?? "plaintext");
                                 _monaco.SetText(text);
                             }
                         });
@@ -753,9 +798,6 @@ namespace Gumknix
             return typeInfos;
         }
 
-        /// <summary>
-        /// Displays information about the specified type in the object info panel.
-        /// </summary>
         public void ObjectInfoPanel(Type type)
         {
             Dictionary<string, string> summaries = [];
@@ -963,6 +1005,30 @@ namespace Gumknix
             _editorHTMLEmbed.Remove();
 #endif
             base.Close();
+        }
+
+        string TestClass2()
+        {
+            return $$$"""
+                using System;
+                using Microsoft.Xna.Framework;
+                using Microsoft.Xna.Framework.Graphics;
+                using Microsoft.Xna.Framework.Input;
+                using global::Gumknix;
+
+                public class TestKNIGameClass2
+                {
+
+                    public TestKNIGameClass2()
+                    {
+                    }
+
+                    public static Color GetColor()
+                    {
+                        return Color.Red;
+                    }
+                }
+                """;
         }
     }
 }

@@ -42,7 +42,8 @@ public class TestKNIGame : DrawableGameComponent
     public override void Draw(GameTime gameTime)
     {
         spriteBatch.Begin();
-        spriteBatch.Draw(whitePixel, new Rectangle((int)Position.X, (int)Position.Y, 100, 100), Color.Yellow);
+        Color colorFromOtherClass = TestKNIGameClass2.GetColor();
+        spriteBatch.Draw(whitePixel, new Rectangle((int)Position.X, (int)Position.Y, 100, 100), colorFromOtherClass);
         spriteBatch.End();
 
         base.Draw(gameTime);

@@ -223,6 +223,29 @@ namespace Gumknix
 #endif
         }
 
+        public async Task<FileSystemItem> GetChildAsync(string name)
+        {
+            FileSystemItem childItem;
+
+#if BLAZORGL
+            FileSystemDirectoryHandle directoryHandle = Handle as FileSystemDirectoryHandle;
+            FileSystemHandle childHandle = null;
+            try
+            {
+                childHandle = await directoryHandle.GetDirectoryHandle(name, false);
+            }
+            catch
+            {
+                childHandle = await directoryHandle.GetFileHandle(name, false);
+            }
+
+            childItem = new(childHandle, this);
+            AddChild(childItem);
+
+#endif
+            return childItem;
+        }
+
         public async Task<List<FileSystemItem>> GetAllParentsAsync(FileSystemItem root)
         {
             List<FileSystemItem> pathPartsList = [root];
@@ -282,7 +305,7 @@ namespace Gumknix
                 AddChild(childItem);
                 allChildren.Add(childItem);
 
-                if (childItem.Type == Types.File)
+                if ((childItem.Type == Types.File) && (addToFileStats != null))
                 {
                     FileSystemFileHandle fileHandle = entry as FileSystemFileHandle;
                     File file = await fileHandle.GetFile();

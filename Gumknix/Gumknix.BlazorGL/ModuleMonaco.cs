@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.JSInterop;
 using nkast.Wasm.JSInterop;
 
@@ -16,6 +17,13 @@ namespace Gumknix
         {
             public string Id { get; set; }
             public string[] Extensions { get; set; }
+
+            public void AddExtension(string extension)
+            {
+                if (Extensions.Contains(extension))
+                    return;
+                Extensions = [.. Extensions, extension];
+            }
         }
 
         public class CompletionItemInfo
