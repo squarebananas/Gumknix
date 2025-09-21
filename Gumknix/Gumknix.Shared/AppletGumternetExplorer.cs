@@ -13,7 +13,6 @@ using nkast.Wasm.Canvas;
 using nkast.Wasm.Dom;
 using nkast.Wasm.FileSystem;
 
-
 namespace Gumknix
 {
     public class AppletGumternetExplorer : BaseApplet
@@ -89,19 +88,6 @@ namespace Gumknix
 
             if (args?.Length >= 1)
             {
-                FileSystemItem fileSystemItem = args[0] as FileSystemItem;
-                if (fileSystemItem != null)
-                {
-                    Task task = new(async () =>
-                    {
-                        FileSystemFileHandle fileSystemFileHandle = fileSystemItem.Handle as FileSystemFileHandle;
-                        nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
-                        string url = nkast.Wasm.Url.Url.CreateObjectURL(file);
-                        Navigate(url);
-                    });
-                    task.Start();
-                }
-
                 HTMLElement<Div> HTMLElement = args[0] as HTMLElement<Div>;
                 if (HTMLElement != null)
                 {
@@ -141,13 +127,35 @@ namespace Gumknix
             //    {TestPageDivAndCss().Replace("\"", "&quot;")}
             //    </div>
             //    """);
-             //<iframe src="https://docs.monogame.net/articles/tutorials/building_2d_games/06_working_with_textures/index.html"
-             //            style="border: none; width: 100%; height: 100%;" allow="xr-spatial-tracking"></iframe>
+            //<iframe src="https://docs.monogame.net/articles/tutorials/building_2d_games/06_working_with_textures/index.html"
+            //            style="border: none; width: 100%; height: 100%;" allow="xr-spatial-tracking"></iframe>
 
             //https://squarebananas.github.io/kni-unofficial-webxnar-experiments.github.io/exp2/test/index.html
             //https://docs.monogame.net/articles/tutorials/building_2d_games/06_working_with_textures/index.html
             //https://docs.flatredball.com/gum
 #endif
+
+            if (args?.Length >= 1)
+            {
+                string uri = args[0] as string;
+                if (uri != null)
+                {
+                    Navigate(uri);
+                }
+
+                FileSystemItem fileSystemItem = args[0] as FileSystemItem;
+                if (fileSystemItem != null)
+                {
+                    Task task = new(async () =>
+                    {
+                        FileSystemFileHandle fileSystemFileHandle = fileSystemItem.Handle as FileSystemFileHandle;
+                        nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
+                        string url = nkast.Wasm.Url.Url.CreateObjectURL(file);
+                        Navigate(url);
+                    });
+                    task.Start();
+                }
+            }
         }
 
         public override void Update()
@@ -193,7 +201,7 @@ namespace Gumknix
             _addressTextBox.Text = Address;
 
             string IFrameString = $"""
-                <iframe src="{Address}" style="border: none; width: 100%; height: 100%;" allow="xr xr-spatial-tracking"></iframe>
+                <iframe src="{Address}" style="border: none; width: 100%; height: 100%;" allow="microphone; xr; xr-spatial-tracking"></iframe>
                 """;
             _containerHTMLEmbed.SetInnerHTML(IFrameString);
             _externalDiv = null;
