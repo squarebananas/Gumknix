@@ -78,11 +78,6 @@ namespace Gumknix
             SettingsThemes = new(this);
 
             EmbeddedMode = new(this);
-
-            Uri uri = new(Program.NavigationManager.Uri);
-            string queryString = uri.Query;
-
-
         }
 
         public void UpdatePreGum(GameTime gameTime)
@@ -332,6 +327,7 @@ namespace Gumknix
                 { ".projitems", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".py", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".shproj", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
+                { ".sln", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".ts", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) },
                 { ".xml", new(typeof(AppletKniSCode), AppletKniSCode.DefaultIcon) }
             };

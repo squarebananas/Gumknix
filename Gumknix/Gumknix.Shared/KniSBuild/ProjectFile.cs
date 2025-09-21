@@ -70,6 +70,7 @@ namespace Gumknix.KniSBuild
 
         public class SearchPathInfo
         {
+            public ProjectFile ProjectFile;
             public string Path;
             public string SearchPath;
             public FileSystemItem RootFileSystemItem;
@@ -81,7 +82,7 @@ namespace Gumknix.KniSBuild
 
         public StringBuilder Log = new();
 
-        Dictionary<string, FileSystemItem> projectFiles = [];
+        public Dictionary<string, FileSystemItem> ProjectFiles = [];
 
         public ProjectFile()
         {
@@ -186,10 +187,18 @@ namespace Gumknix.KniSBuild
 
             await AddSearchPathsFromItems(searchPaths);
 
-            projectFiles = [];
+            ProjectFile projectFile = null;
+            ProjectFiles = [];
+            ProjectFiles.Add(FileSystemItem.Name, FileSystemItem);
 
             foreach (SearchPathInfo searchPathInfo in searchPaths)
             {
+                if (projectFile != searchPathInfo.ProjectFile)
+                {
+                    projectFile = searchPathInfo.ProjectFile;
+                    ProjectFiles.TryAdd(searchPathInfo.ProjectFile.FileSystemItem.Name, searchPathInfo.ProjectFile.FileSystemItem);
+                }
+
                 FileSystemItem root = searchPathInfo.RootFileSystemItem;
 
                 if (searchPathInfo.SearchPath == string.Empty)
@@ -201,7 +210,7 @@ namespace Gumknix.KniSBuild
                     if (fileSystemItem != null)
                     {
                         string absolutePath = Path.Combine(root.Path, searchPathInfo.Path).Replace("/", "\\");
-                        projectFiles.TryAdd(absolutePath, fileSystemItem);
+                        ProjectFiles.TryAdd(absolutePath, fileSystemItem);
                     }
                 }
                 if (searchPathInfo.GetFolder || searchPathInfo.GetSubfolders)
@@ -218,12 +227,12 @@ namespace Gumknix.KniSBuild
                             continue;
                         if (itemPath.Contains("\\obj\\"))
                             continue;
-                        projectFiles.TryAdd(fileSystemItems[i].Path, fileSystemItems[i]);
+                        ProjectFiles.TryAdd(fileSystemItems[i].Path, fileSystemItems[i]);
                     }
                 }
             }
 
-            foreach (KeyValuePair<string, FileSystemItem> file in projectFiles)
+            foreach (KeyValuePair<string, FileSystemItem> file in ProjectFiles)
             {
                 Log.AppendLine(file.Value.Path);
             }
@@ -234,6 +243,7 @@ namespace Gumknix.KniSBuild
             if (EnableDefaultItems || EnableDefaultCompileItems)
             {
                 SearchPathInfo defaultCompileFolders = new();
+                defaultCompileFolders.ProjectFile = this;
                 defaultCompileFolders.Path = defaultCompileFolders.SearchPath = FileSystemItem.Parent.Path;
                 defaultCompileFolders.RootFileSystemItem = FileSystemItem.Parent;
                 defaultCompileFolders.GetFolder = true;
@@ -251,6 +261,7 @@ namespace Gumknix.KniSBuild
                 {
                     string path = item.Include;
                     SearchPathInfo pathRequest = GetPathRequest(path, ".cs");
+                    pathRequest.ProjectFile = this;
                     pathRequest.RootFileSystemItem = FileSystemItem.Parent;
                     searchPaths.Add(pathRequest);
                 }

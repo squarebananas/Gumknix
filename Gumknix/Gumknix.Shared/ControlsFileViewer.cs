@@ -144,6 +144,7 @@ namespace Gumknix
             _folderListBox = new();
             _folderListBox.Visual.Dock(Dock.FillVertically);
             _folderListBox.Visual.Anchor(Anchor.TopLeft);
+            _folderListBox.Visual.MinWidth = 100;
             _folderListBox.Visual.Width = -270;
             _folderListBox.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
             _folderListBox.ListBoxItemFormsType = typeof(FileListBoxItem);

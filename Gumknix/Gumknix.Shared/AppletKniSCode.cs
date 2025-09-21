@@ -8,19 +8,23 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 
 using Microsoft.Xna.Framework;
+
+using Gum.Converters;
 using Gum.DataTypes;
+using Gum.DataTypes.Variables;
 using Gum.Forms;
 using Gum.Forms.Controls;
+using Gum.Forms.DefaultVisuals;
 using Gum.Wireframe;
 using MonoGameGum;
 using MonoGameGum.GueDeriving;
+using RenderingLibrary.Graphics;
 
 using MetadataReferenceService.Abstractions.Types;
 using MetadataReferenceService.BlazorWasm;
@@ -28,7 +32,6 @@ using MetadataReferenceService.BlazorWasm;
 #if BLAZORGL
 using nkast.Wasm.Canvas;
 using nkast.Wasm.Dom;
-using nkast.Wasm.File;
 using nkast.Wasm.FileSystem;
 #endif
 
@@ -58,6 +61,15 @@ namespace Gumknix
         private Button compileButton;
         private ComboBox optimizationLevelComboBox;
 
+        private StackPanel _innerPanel;
+        private StackPanel _innerPanelLeft;
+        private StackPanel _innerPanelRight;
+
+        private ContainerRuntime _textEditorContainer;
+        private ScrollViewer _outputPanelScrollViewer;
+        private KniopadTextBox _outputPanel;
+        private ListBox _solutionFilesListBox;
+
         private Dictionary<string, string> sourceFiles = [];
 
         private static BlazorWasmMetadataReferenceService _referenceService;
@@ -66,9 +78,14 @@ namespace Gumknix
 
         private Assembly _loadedAssembly;
 
+        public string TempForceLoad; // todo replace
+
         public AppletKniSCode(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
-            base.Initialize(DefaultTitle, DefaultIcon);
+            TempForceLoad = Microsoft.Xna.Framework.Audio.AudioChannels.Stereo.ToString() +
+                Microsoft.Xna.Framework.Media.VideoSoundtrackType.Dialog.ToString();
+
+            base.Initialize(DefaultTitle, DefaultIcon, 1500, 800, ResizeMode.NoResize);
 
             _menu = new();
             MainStackPanel.Visual.AddChild(_menu.Visual);
@@ -194,12 +211,13 @@ namespace Gumknix
             _stackPanel = new();
             _stackPanel.Orientation = Orientation.Vertical;
             _stackPanel.Visual.Dock(Dock.Fill);
+            _stackPanel.Visual.Anchor(Anchor.TopLeft);
             _stackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             _background.AddChild(_stackPanel);
 
             _mainToolbar = new();
             _mainToolbar.Orientation = Orientation.Vertical;
-            _mainToolbar.Dock(Dock.SizeToChildren);
+            _mainToolbar.Dock(Dock.FillHorizontally);
             _mainToolbar.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
             _stackPanel.AddChild(_mainToolbar);
 
@@ -221,6 +239,104 @@ namespace Gumknix
             optimizationLevelComboBox.SelectedIndex = 1;
             _mainToolbar.AddChild(optimizationLevelComboBox);
 
+            _innerPanel = new();
+            _innerPanel.Orientation = Orientation.Horizontal;
+            _innerPanel.Visual.Dock(Dock.Fill);
+            _innerPanel.Visual.Anchor(Anchor.TopLeft);
+            _innerPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
+            _stackPanel.AddChild(_innerPanel);
+
+            _innerPanelLeft = new();
+            _innerPanelLeft.Orientation = Orientation.Vertical;
+            _innerPanelLeft.Visual.Dock(Dock.FillVertically);
+            _innerPanelLeft.Visual.Anchor(Anchor.TopLeft);
+            _innerPanelLeft.Visual.Width = 1200;
+            _innerPanelLeft.Visual.WidthUnits = DimensionUnitType.Absolute;
+            _innerPanelLeft.Visual.MinWidth = 150;
+            _innerPanelLeft.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
+            _innerPanel.AddChild(_innerPanelLeft);
+
+            _textEditorContainer = new();
+            _textEditorContainer.Dock(Dock.FillHorizontally);
+            _textEditorContainer.Anchor(Anchor.TopLeft);
+            _textEditorContainer.Height = 550;
+            _textEditorContainer.HeightUnits = DimensionUnitType.Absolute;
+            _textEditorContainer.MinHeight = 200;
+            _innerPanelLeft.AddChild(_textEditorContainer);
+
+            Splitter splitter1 = new();
+            splitter1.Visual.Dock(Dock.FillHorizontally);
+            splitter1.Visual.Anchor(Anchor.TopLeft);
+            splitter1.Visual.Height = 5;
+            _innerPanelLeft.AddChild(splitter1);
+
+            _outputPanelScrollViewer = new();
+            _outputPanelScrollViewer.Visual.Dock(Dock.Fill);
+            _outputPanelScrollViewer.Visual.Anchor(Anchor.TopLeft);
+            _outputPanelScrollViewer.Visual.Height = 200;
+            _outputPanelScrollViewer.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _outputPanelScrollViewer.Visual.ClipsChildren = true;
+            _innerPanelLeft.AddChild(_outputPanelScrollViewer);
+
+            _outputPanel = new();
+            _outputPanel.Visual.Dock(Dock.Fill);
+            _outputPanel.Visual.Anchor(Anchor.TopLeft);
+            _outputPanel.Visual.MinHeight = 200;
+            (_outputPanel.Visual as TextBoxVisual).TextInstance.HorizontalAlignment = HorizontalAlignment.Left;
+            (_outputPanel.Visual as TextBoxVisual).TextInstance.VerticalAlignment = VerticalAlignment.Top;
+            _outputPanel.TextWrapping = TextWrapping.Wrap;
+            _outputPanel.Visual.TextOverflowVerticalMode = TextOverflowVerticalMode.SpillOver;
+            _outputPanel.IsReadOnly = true;
+            _outputPanel.Placeholder = null;
+            List<StateSave> states = _outputPanel.Visual.Categories["TextBoxCategory"].States;
+            for (int i = 0; i < states.Count; i++)
+            {
+                if (states[i].Variables.GetVariableSave("Background.Color") != null)
+                    states[i].Variables.GetVariableSave("Background.Color").Value = new Color(32, 32, 32);
+            }
+            _outputPanelScrollViewer.AddChild(_outputPanel);
+            _outputPanel.UpdateState();
+
+            Splitter splitter2 = new();
+            splitter2.Visual.Dock(Dock.FillVertically);
+            splitter2.Visual.Anchor(Anchor.TopLeft);
+            splitter2.Visual.Width = 5;
+            _innerPanel.AddChild(splitter2);
+
+            _innerPanelRight = new();
+            _innerPanelRight.Orientation = Orientation.Vertical;
+            _innerPanelRight.Visual.Dock(Dock.FillVertically);
+            _innerPanelRight.Visual.Anchor(Anchor.TopLeft);
+            _innerPanelRight.Visual.Width = 300;
+            _innerPanelRight.Visual.WidthUnits = DimensionUnitType.Absolute;
+            _innerPanelRight.Visual.MinWidth = 150;
+            _innerPanelRight.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
+            _innerPanel.AddChild(_innerPanelRight);
+
+            _solutionFilesListBox = new();
+            _solutionFilesListBox.Visual.Dock(Dock.FillHorizontally);
+            _solutionFilesListBox.Visual.Anchor(Anchor.TopLeft);
+            _solutionFilesListBox.Visual.Height = 450;
+            _solutionFilesListBox.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _solutionFilesListBox.ListBoxItemFormsType = typeof(SolutionFileListBoxItem);
+            _solutionFilesListBox.ItemClicked += async (s, e) =>
+            {
+                FileSystemItem fileItem = _solutionFilesListBox.SelectedObject as FileSystemItem;
+                FileSystemFileHandle fileSystemFileHandle = fileItem.Handle as FileSystemFileHandle;
+                nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
+                string text = await file.Text();
+                string languageId = GetLanguageNameFromFileExtension(fileItem.Extension);
+                _monaco.SetLanguage(languageId);
+                _monaco.SetText(text);
+            };
+            _innerPanelRight.AddChild(_solutionFilesListBox);
+
+            Splitter splitter3 = new();
+            splitter3.Visual.Dock(Dock.FillHorizontally);
+            splitter3.Visual.Anchor(Anchor.TopLeft);
+            splitter3.Visual.Height = 5;
+            _innerPanelRight.AddChild(splitter3);
+
 #if BLAZORGL
             _monaco = ModuleMonaco.Create();
             _monaco.OnScriptLoaded += (s, e) => _monaco.InitializeInstance();
@@ -234,6 +350,22 @@ namespace Gumknix
                 ModuleMonaco.LanguageDefinition xmlLanguageDefinition = LanguageDefinitions.Where(l => l.Id == "xml").First();
                 xmlLanguageDefinition.AddExtension(".projitems");
                 xmlLanguageDefinition.AddExtension(".shproj");
+
+                if (args == null) // remove this
+                {
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            FileSystemItem fileSystemItem = await GumknixInstance.DesktopStorage.GetChildAsync("MicrophoneEcho");
+                            fileSystemItem = await fileSystemItem.GetChildAsync("MicrophoneEchoSample.KNI.DesktopGL");
+                            fileSystemItem = await fileSystemItem.GetChildAsync("MicrophoneEchoSample.KNI.DesktopGL.csproj");
+                            ReadFile(fileSystemItem);
+                        }
+                        catch { }
+                    });
+
+                }
 
                 if (args?.Length >= 1)
                 {
@@ -259,7 +391,7 @@ namespace Gumknix
                 <svg id="svgCutoutUid{_monaco.Uid}" width="0" height="0" style="position:absolute;">
                 </svg>
                 """);
-            
+
             _monaco.InitializeLoaderScript();
 
             _referenceService ??= new(Program.NavigationManager);
@@ -268,6 +400,8 @@ namespace Gumknix
 
         public override void Update()
         {
+            _outputPanel.Visual.Height = Math.Max(_outputPanelScrollViewer.ActualHeight - 15, _outputPanel.WrappedTextHeight);
+            _outputPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
 
             base.Update();
         }
@@ -291,33 +425,42 @@ namespace Gumknix
                     if (applet != this)
                     {
                         Rectangle windowArea = new(
-                            (int)(applet.Window.Visual.AbsoluteLeft - (Window.AbsoluteLeft + 20)),
-                            (int)(applet.Window.Visual.AbsoluteTop - (Window.AbsoluteTop + 50)),
+                            (int)(applet.Window.Visual.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
+                            (int)(applet.Window.Visual.AbsoluteTop - _textEditorContainer.AbsoluteTop),
                             (int)applet.Window.Visual.GetAbsoluteWidth(),
                             (int)applet.Window.Visual.GetAbsoluteHeight());
                         if (area.Intersects(windowArea))
                             rectangles.Add(windowArea);
                     }
 
-                    for (int j=0; j < applet.Dialogs.Count;j++)
+                    for (int j = 0; j < applet.Dialogs.Count; j++)
                     {
                         BaseDialog dialog = applet.Dialogs[j];
                         Rectangle dialogArea = new(
-                            (int)(dialog.Window.Visual.AbsoluteLeft - (Window.AbsoluteLeft + 20)),
-                            (int)(dialog.Window.Visual.AbsoluteTop - (Window.AbsoluteTop + 50)),
+                            (int)(dialog.Window.Visual.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
+                            (int)(dialog.Window.Visual.AbsoluteTop - _textEditorContainer.AbsoluteTop),
                             (int)dialog.Window.Visual.GetAbsoluteWidth(),
                             (int)dialog.Window.Visual.GetAbsoluteHeight());
                         if (area.Intersects(dialogArea))
                             rectangles.Add(dialogArea);
                     }
                 }
+            }
 
+            for (int i = 0; i < Menu.PopupRoot.Children.Count; i++)
+            {
+                GraphicalUiElement gue = Menu.PopupRoot.Children[i] as GraphicalUiElement;
+                Rectangle popupArea = new((int)(gue.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
+                    (int)(gue.AbsoluteTop - _textEditorContainer.AbsoluteTop),
+                    (int)gue.GetAbsoluteWidth(),
+                    (int)gue.GetAbsoluteHeight());
+                if (area.Intersects(popupArea))
+                    rectangles.Add(popupArea);
             }
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"  <defs>");
             sb.AppendLine($"    <mask id=\"cutoutUid{_monaco.Uid}\">");
-            //sb.AppendLine($"      <rect x=\"{0}\" y=\"{0}\" width=\"{1000}\" height=\"{1000}\" fill=\"black\"/>");
             sb.AppendLine($"      <rect x=\"{area.Left}\" y=\"{area.Top}\" width=\"{area.Width}\" height=\"{area.Height}\" fill=\"white\"/>");
             for (int i = 0; i < rectangles.Count; i++)
             {
@@ -334,10 +477,10 @@ namespace Gumknix
 
                 _svgCutoutHTMLEmbed.SetInnerHTML(sb.ToString());
                 _editorHTMLEmbed.Style.SetProperty("display", "block");
-                _editorHTMLEmbed.Style.SetProperty("left", $"{clientBounds.Left + Window.AbsoluteLeft + 20}px");
-                _editorHTMLEmbed.Style.SetProperty("top", $"{clientBounds.Top + Window.AbsoluteTop + 100}px");
-                _editorHTMLEmbed.Style.SetProperty("width", $"{Window.ActualWidth - 100}px");
-                _editorHTMLEmbed.Style.SetProperty("height", $"{Window.ActualHeight - 170}px");
+                _editorHTMLEmbed.Style.SetProperty("left", $"{_textEditorContainer.AbsoluteLeft}px");
+                _editorHTMLEmbed.Style.SetProperty("top", $"{_textEditorContainer.AbsoluteTop}px");
+                _editorHTMLEmbed.Style.SetProperty("width", $"{_textEditorContainer.GetAbsoluteWidth()}px");
+                _editorHTMLEmbed.Style.SetProperty("height", $"{_textEditorContainer.GetAbsoluteHeight()}px");
                 _editorHTMLEmbed.Style.SetProperty("mask", $"url(#cutoutUid{_monaco.Uid})");
                 _editorHTMLEmbed.Style.SetProperty("z-index", "9999");
             }
@@ -350,18 +493,6 @@ namespace Gumknix
 
         public async Task Compile()
         {
-            //if (loadedAssembly != null)
-            //{
-            //    try
-            //    {
-            //        AssemblyLoadContext assemblyLoadContext = AssemblyLoadContext.GetLoadContext(loadedAssembly);
-            //        assemblyLoadContext?.Unload();
-            //        loadedAssembly = null;
-            //    }
-            //    catch(Exception e)
-            //    {
-            //    }
-            //}
             _loadedAssembly = null;
 
             string log = "";
@@ -430,12 +561,175 @@ namespace Gumknix
             string[] preprocessorSymbols = ["BLAZORGL"];
 
             string sourceCode = _monaco.GetText();
+            if (sourceFiles.Count == 0)
+                sourceFiles["Program.cs"] = sourceCode;
 
             CSharpParseOptions cSharpParseOptions = CSharpParseOptions.Default;
             cSharpParseOptions.WithLanguageVersion(LanguageVersion.LatestMajor);
             cSharpParseOptions.WithPreprocessorSymbols(preprocessorSymbols);
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
 
+            List<SyntaxTree> syntaxTrees = [];
+            for (int i=0; i < sourceFiles.Count; i++)
+            {
+                string fileSourceCode = sourceFiles.Values.ElementAt(i);
+                SyntaxTree fileSyntaxTree = ParseSource(fileSourceCode, cSharpParseOptions);
+                syntaxTrees.Add(fileSyntaxTree);
+            }
+
+            HashSet<string> assembliesRequired = [];
+            assembliesRequired.Add("System.Private.CoreLib");
+            assembliesRequired.Add("System.Runtime");
+
+            for (int i = 0; i < syntaxTrees.Count; i++)
+            {
+                SyntaxTree syntaxTree = syntaxTrees[i];
+                CompilationUnitSyntax root = syntaxTree.GetRoot() as CompilationUnitSyntax;
+                for (int j = 0; j < root.Usings.Count; j++)
+                {
+                    UsingDirectiveSyntax usingDirectiveSyntax = root.Usings[j];
+                    string namespaceName = usingDirectiveSyntax.Name.ToString().Replace("global::", "");
+                    if (namespaceToModuleLookup.TryGetValue(namespaceName, out (Assembly assembly, string moduleName) entry))
+                    {
+                        assembliesRequired.Add(entry.moduleName);
+                    }
+                }
+
+                IEnumerable<SyntaxNode> nodes = root.DescendantNodes();
+                foreach (SyntaxNode node in nodes)
+                {
+                    QualifiedNameSyntax qualifiedNameNode = node?.Parent as QualifiedNameSyntax;
+                    if (qualifiedNameNode?.Right == node)
+                    {
+                        QualifiedNameSyntax rootQualifiedNameNode = qualifiedNameNode;
+                        while ((rootQualifiedNameNode?.Parent as QualifiedNameSyntax) != null)
+                            rootQualifiedNameNode = rootQualifiedNameNode?.Parent as QualifiedNameSyntax;
+                        string fullQualifiedName = rootQualifiedNameNode.ToString();
+
+                        if (fullTypeToModuleLookup.TryGetValue(fullQualifiedName, out (Assembly assembly, string moduleName) entry))
+                        {
+                            if (assembliesRequired.Contains(entry.moduleName) == false)
+                                assembliesRequired.Add(entry.moduleName);
+                        }
+                    }
+                }
+            }
+
+            List<MetadataReference> metadataReferences = [];
+            List<string> assemblyNames = assembliesRequired.ToList();
+            for (int i = 0; i < assemblyNames.Count; i++)
+            {
+                AssemblyDetails assemblyDetails = new() { Name = assemblyNames[i] };
+                MetadataReference metadataReference = null;
+                try
+                {
+                    metadataReference = await _referenceService.CreateAsync(assemblyDetails);
+                }
+                catch (Exception e)
+                {
+                    log += e.Message + "\n";
+                }
+                metadataReferences.Add(metadataReference);
+            }
+            MetadataReference[] metadataReferencesArray = metadataReferences.ToArray();
+
+            CSharpCompilationOptions compilationOptions = new(
+                outputKind: OutputKind.DynamicallyLinkedLibrary,
+                reportSuppressedDiagnostics: true,
+                metadataImportOptions: MetadataImportOptions.Public,
+                allowUnsafe: true,
+                optimizationLevel: OptimizationLevel
+            );
+
+            CSharpCompilation compilation = CSharpCompilation.Create(outputAssemblyName, syntaxTrees, metadataReferencesArray, compilationOptions);
+
+            //SemanticModel semanticModel = compilation.GetSemanticModel(syntaxTrees[0]);
+
+            using MemoryStream ILMemoryStream = new();
+            EmitResult emitResult = compilation.Emit(ILMemoryStream);
+            for (int i = 0; i < emitResult.Diagnostics.Length; i++)
+            {
+                Diagnostic diagnostic = emitResult.Diagnostics[i];
+                Console.WriteLine(diagnostic.ToString());
+                log += diagnostic.ToString() + "\n";
+            }
+
+            byte[] ILBytes = null;
+            if (emitResult.Success)
+            {
+                ILBytes = ILMemoryStream.ToArray();
+                _loadedAssembly = Assembly.Load(ILBytes);
+            }
+
+            if (_loadedAssembly != null)
+            {
+                bool entryPointFound = false;
+                Type[] types = _loadedAssembly.GetTypes();
+                for (int i = 0; i < types.Length; i++)
+                {
+                    try
+                    {
+                        Type type = types[i];
+                        MethodInfo autoRunMethod = type.GetMethod("GumknixEntryPoint", BindingFlags.Public | BindingFlags.Static);
+                        if (autoRunMethod != null)
+                        {
+                            entryPointFound = true;
+                            autoRunMethod.Invoke(null, [GumknixInstance]);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        log += e.Message;
+                    }
+                }
+                if (!entryPointFound)
+                {
+                    log += "No entry point found in the assembly.";
+
+#if BLAZORGL
+                    FileSystemDirectoryHandle rootHandle = GumknixInstance.RootStorage.Handle as FileSystemDirectoryHandle;
+                    FileSystemFileHandle tempFileHandle = await rootHandle.GetFileHandle("ILBytes.temp", create: true);
+                    FileSystemWritableFileStream writableFileStream = await tempFileHandle.CreateWritable();
+                    await writableFileStream.Write(ILBytes);
+                    await writableFileStream.Truncate((ulong)ILBytes.LongLength);
+                    await writableFileStream.Close();
+
+                    nkast.Wasm.File.File tempFile = await tempFileHandle.GetFile();
+                    string tempFileUrl = nkast.Wasm.Url.Url.CreateObjectURL(tempFile);
+                    string escapedTempFileUrl = Uri.EscapeDataString(tempFileUrl);
+
+                    string address = Program.NavigationManager.BaseUri + "?ilurl=" + escapedTempFileUrl;
+                    GumknixInstance.StartApplet(typeof(AppletGumternetExplorer), [address]);
+#endif
+                }
+            }
+
+            if (ILBytes != null)
+            {
+                string ILText = GetILTextFromAssembly(ILBytes);
+                log += "\n\n" + ILText;
+            }
+
+            List<ModuleMonaco.CompletionItemInfo> allTypeInfos = [];
+            for (int i = 0; i < assemblyNames.Count; i++)
+            {
+                for (int j = 0; j < allAssemblyTypes.Count; j++)
+                {
+                    if (assemblyNames[i] == allAssemblyTypes[j].moduleName)
+                    {
+                        List<ModuleMonaco.CompletionItemInfo> typeInfos = GetTypeInfos(allAssemblyTypes[j].types);
+                        allTypeInfos.AddRange(typeInfos);
+                    }
+                }
+            }
+            _monaco.RegisterCompletionItemProvider(allTypeInfos);
+
+            _outputPanel.Text = log;
+            _outputPanel.CaretIndex = 0;
+        }
+
+        public SyntaxTree ParseSource(string sourceCode, CSharpParseOptions cSharpParseOptions)
+        {
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
 
             CompilationUnitSyntax root = syntaxTree.GetRoot() as CompilationUnitSyntax;
             bool topLevelStatementsFound = false;
@@ -507,139 +801,74 @@ namespace Gumknix
                     }
                     """;
 
-                syntaxTree = CSharpSyntaxTree.ParseText(wrappedSource, cSharpParseOptions);
+                sourceCode = wrappedSource;
+                syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
+                root = syntaxTree.GetRoot() as CompilationUnitSyntax;
             }
 
-            List<SyntaxTree> syntaxTrees = [syntaxTree];
+            //bool isGameBaseClassUsed = false;
+            //IEnumerable<ClassDeclarationSyntax> classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            //foreach (ClassDeclarationSyntax classDeclaration in classDeclarations)
+            //{
+            //    if (classDeclaration.BaseList == null)
+            //        continue;
 
-            if (sourceCode.Contains("TestKNIGameClass2"))
-            {
-                SyntaxTree syntaxTree2 = CSharpSyntaxTree.ParseText(TestClass2(), cSharpParseOptions);
-                syntaxTrees.Add(syntaxTree2);
-            }
+            //    foreach (BaseTypeSyntax baseType in classDeclaration.BaseList.Types)
+            //    {
+            //        string baseTypeName = baseType.Type.ToString();
+            //        if (baseTypeName == "Game" || baseTypeName == "Microsoft.Xna.Framework.Game")
+            //        {
+            //            isGameBaseClassUsed = true;
 
-            HashSet<string> assembliesRequired = [];
-            assembliesRequired.Add("System.Private.CoreLib");
-            assembliesRequired.Add("System.Runtime");
+            //            string newBaseTypeName = ": Microsoft.Xna.Framework.DrawableGameComponent";
+            //            int startIndex = classDeclaration.BaseList.Span.Start;
+            //            int length = classDeclaration.BaseList.Span.Length;
+            //            sourceCode = sourceCode.Remove(startIndex, length);
+            //            sourceCode = sourceCode.Insert(startIndex, newBaseTypeName);
+            //            int offset = newBaseTypeName.Length - length;
 
-            root = syntaxTree.GetRoot() as CompilationUnitSyntax;
-            for (int i = 0; i < root.Usings.Count; i++)
-            {
-                UsingDirectiveSyntax usingDirectiveSyntax = root.Usings[i];
-                string namespaceName = usingDirectiveSyntax.Name.ToString().Replace("global::", "");
-                if (namespaceToModuleLookup.TryGetValue(namespaceName, out (Assembly assembly, string moduleName) entry))
-                {
-                    if (assembliesRequired.Contains(entry.moduleName) == false)
-                        assembliesRequired.Add(entry.moduleName);
-                }
-            }
+            //            IEnumerable<ConstructorDeclarationSyntax> constructors =
+            //                classDeclaration.DescendantNodes().OfType<ConstructorDeclarationSyntax>();
+            //            foreach (ConstructorDeclarationSyntax constructor in constructors)
+            //            {
+            //                if (constructor.ParameterList.Parameters.Count == 0)
+            //                {
+            //                    string newParameterList = "(Microsoft.Xna.Framework.Game game) : base(game)";
+            //                    startIndex = constructor.ParameterList.Span.Start + offset;
+            //                    length = constructor.ParameterList.Span.Length;
+            //                    sourceCode = sourceCode.Remove(startIndex, length);
+            //                    sourceCode = sourceCode.Insert(startIndex, newParameterList);
+            //                    offset += newParameterList.Length - length;
+            //                    break;
+            //                }
+            //            }
 
-            List<string> typeNames = new();
-            IEnumerable<SyntaxNode> nodes = root.DescendantNodes();
-            foreach (SyntaxNode node in nodes)
-            {
-                QualifiedNameSyntax qualifiedNameNode = node?.Parent as QualifiedNameSyntax;
-                if (qualifiedNameNode?.Right == node)
-                {
-                    QualifiedNameSyntax rootQualifiedNameNode = qualifiedNameNode;
-                    while ((rootQualifiedNameNode?.Parent as QualifiedNameSyntax) != null)
-                        rootQualifiedNameNode = rootQualifiedNameNode?.Parent as QualifiedNameSyntax;
-                    string fullQualifiedName = rootQualifiedNameNode.ToString();
+            //            string newClassCode =
+            //                """
 
-                    if (fullTypeToModuleLookup.TryGetValue(fullQualifiedName, out (Assembly assembly, string moduleName) entry))
-                    {
-                        if (assembliesRequired.Contains(entry.moduleName) == false)
-                            assembliesRequired.Add(entry.moduleName);
-                    }
-                }
-            }
+            //                public static void GumknixEntryPoint(global::Gumknix.Gumknix gumknix)
+            //                {
+            //                    Microsoft.Xna.Platform.GameStrategy gameStrategy = gumknix.GameServiceContainer.GetService(
+            //                        typeof(Microsoft.Xna.Platform.GameStrategy)) as Microsoft.Xna.Platform.GameStrategy;
+            //                    DrawableGameComponent testGame = new 
+            //                """;
+            //            newClassCode += classDeclaration.Identifier.Text;
+            //            newClassCode +=
+            //                """
+            //                (gameStrategy.Game);
+            //                    gumknix.StartApplet(typeof(AppletKniGameComponentRunner), [testGame]);
+            //                }
+                                
+            //                """;
 
-            List<MetadataReference> metadataReferences = [];
-            List<string> assemblyNames = assembliesRequired.ToList();
-            for (int i = 0; i < assemblyNames.Count; i++)
-            {
-                AssemblyDetails assemblyDetails = new() { Name = assemblyNames[i] };
-                MetadataReference metadataReference = null;
-                try
-                {
-                    metadataReference = await _referenceService.CreateAsync(assemblyDetails);
-                }
-                catch (Exception e)
-                {
-                    log += e.Message + "\n";
-                }
-                metadataReferences.Add(metadataReference);
-            }
-            MetadataReference[] metadataReferencesArray = metadataReferences.ToArray();
+            //            sourceCode = sourceCode.Insert(classDeclaration.Span.End - 1 + offset, newClassCode);
+            //            syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
+            //            break;
+            //        }
+            //    }
+            //}
 
-            CSharpCompilationOptions compilationOptions = new(
-                outputKind: OutputKind.DynamicallyLinkedLibrary,
-                reportSuppressedDiagnostics: true,
-                metadataImportOptions: MetadataImportOptions.Public,
-                allowUnsafe: true,
-                optimizationLevel: OptimizationLevel
-            );
-
-            CSharpCompilation compilation = CSharpCompilation.Create(outputAssemblyName, syntaxTrees, metadataReferencesArray, compilationOptions);
-            using MemoryStream ILMemoryStream = new();
-            EmitResult emitResult = compilation.Emit(ILMemoryStream);
-            for (int i = 0; i < emitResult.Diagnostics.Length; i++)
-            {
-                Diagnostic diagnostic = emitResult.Diagnostics[i];
-                Console.WriteLine(diagnostic.ToString());
-                log += diagnostic.ToString() + "\n";
-            }
-
-            byte[] ILBytes = null;
-            if (emitResult.Success)
-            {
-                ILBytes = ILMemoryStream.ToArray();
-                _loadedAssembly = Assembly.Load(ILBytes);
-            }
-
-            if (_loadedAssembly != null)
-            {
-                bool entryPointFound = false;
-                Type[] types = _loadedAssembly.GetTypes();
-                for (int i = 0; i < types.Length; i++)
-                {
-                    try
-                    {
-                        entryPointFound = true;
-                        Type type = types[i];
-                        MethodInfo autoRunMethod = type.GetMethod("GumknixEntryPoint", BindingFlags.Public | BindingFlags.Static);
-                        autoRunMethod?.Invoke(null, [GumknixInstance]);
-                    }
-                    catch (Exception e)
-                    {
-                        log += e.Message;
-                    }
-                }
-                if (!entryPointFound)
-                    log += "No entry point found in the assembly.";
-            }
-
-            if (ILBytes != null)
-            {
-                string ILText = GetILTextFromAssembly(ILBytes);
-                log += "\n\n" + ILText;
-            }
-
-            List<ModuleMonaco.CompletionItemInfo> allTypeInfos = [];
-            for (int i = 0; i < assemblyNames.Count; i++)
-            {
-                for (int j = 0; j < allAssemblyTypes.Count; j++)
-                {
-                    if (assemblyNames[i] == allAssemblyTypes[j].moduleName)
-                    {
-                        List<ModuleMonaco.CompletionItemInfo> typeInfos = GetTypeInfos(allAssemblyTypes[j].types);
-                        allTypeInfos.AddRange(typeInfos);
-                    }
-                }
-            }
-            _monaco.RegisterCompletionItemProvider(allTypeInfos);
-
-            GumknixInstance.StartApplet(typeof(AppletKniopad), [log]);
+            return syntaxTree;
         }
 
         private void ReadFile(FileSystemItem fileItem)
@@ -667,24 +896,32 @@ namespace Gumknix
                                 {
                                     projectFile = ProjectFile.Parse(fileItem, text, fileItem.Extension);
                                     Task resolveFilesTask = projectFile.ResolveFiles();
-                                    await resolveFilesTask.ContinueWith(t =>
+                                    await resolveFilesTask.ContinueWith(async t =>
                                     {
-                                        string log = projectFile.Log.ToString();
-                                        GumknixInstance.StartApplet(typeof(AppletKniopad), [log]);
-                                    }
-                                    );
+                                        for (int i = 0; i < projectFile.ProjectFiles.Count; i++)
+                                        {
+                                            FileSystemItem projectChildFileItem = projectFile.ProjectFiles.Values.ElementAt(i);
+                                            _solutionFilesListBox.Items.Add(projectChildFileItem);
+
+                                            if (projectChildFileItem.Extension != ".cs")
+                                                continue;
+
+                                            FileSystemFileHandle fileSystemFileHandle = projectChildFileItem.Handle as FileSystemFileHandle;
+                                            nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
+                                            string text = await file.Text();
+                                            sourceFiles.Add(projectChildFileItem.Name, text);
+                                        }
+
+                                        _outputPanel.Text = projectFile.Log.ToString();
+                                    });
                                 }
                                 else if (fileItem.Extension == ".cs")
                                 {
                                     sourceFiles.Add(fileItem.Name, text);
                                 }
 
-                                ModuleMonaco.LanguageDefinition language = GetLanguageDefinitionFromFileExtension(fileItem.Extension);
-                                if (language == null)
-                                    language = GetLanguageDefinitionFromFileExtension(".txt");
-
-
-                                _monaco.SetLanguage(language?.Id ?? "plaintext");
+                                string languageId = GetLanguageNameFromFileExtension(fileItem.Extension);
+                                _monaco.SetLanguage(languageId);
                                 _monaco.SetText(text);
                             }
                         });
@@ -707,6 +944,12 @@ namespace Gumknix
                         return language;
             }
             return null;
+        }
+
+        public string GetLanguageNameFromFileExtension(string extension)
+        {
+            ModuleMonaco.LanguageDefinition language = GetLanguageDefinitionFromFileExtension(extension);
+            return language?.Id ?? "plaintext";
         }
 
         public string GetILTextFromAssembly(byte[] assemblyBytes)
@@ -834,7 +1077,7 @@ namespace Gumknix
                                 for (int k = 0; k < interfaces.Length; k++)
                                 {
                                     Type interfaceType = interfaces[k];
-                                    if (AddSummary(name, searchPrefix.Substring(0,2) + interfaceType.FullName, out string inheritSummary))
+                                    if (AddSummary(name, searchPrefix.Substring(0, 2) + interfaceType.FullName, out string inheritSummary))
                                     {
                                         summary = inheritSummary;
                                         break;
@@ -979,7 +1222,7 @@ namespace Gumknix
                 }
             }
 
-            GumknixInstance.StartApplet(typeof(AppletKniopad), [stringBuilder.ToString()]);
+            _outputPanel.Text = stringBuilder.ToString();
         }
 
         public string CreateShareLink()
@@ -1029,6 +1272,52 @@ namespace Gumknix
                     }
                 }
                 """;
+        }
+    }
+
+    public class SolutionFileListBoxItem : ListBoxItem
+    {
+        public TextRuntime Icon { get; private set; }
+
+        public SolutionFileListBoxItem(InteractiveGue gue) : base(gue)
+        {
+            TextRuntime text = Visual.GetGraphicalUiElementByName("TextInstance") as TextRuntime;
+            text.X = 30;
+            text.XOrigin = HorizontalAlignment.Left;
+            text.XUnits = GeneralUnitType.PixelsFromSmall;
+
+            Icon = new TextRuntime()
+            {
+                Font = "FluentSymbolSet",
+                FontSize = 48,
+                FontScale = 0.5f,
+                Text = "\uE651",
+                X = 3,
+                Y = 3,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = -100,
+                WidthUnits = DimensionUnitType.RelativeToParent
+            };
+            Visual.AddChild(Icon);
+        }
+
+        public override void UpdateToObject(object obj)
+        {
+            FileSystemItem fileSystemItem = obj as FileSystemItem;
+            coreText.RawText = fileSystemItem.Name;
+            Icon.Text = fileSystemItem.Icon;
+
+            if (fileSystemItem.Extension == ".csproj" ||
+                fileSystemItem.Extension == ".projitems")
+            {
+                
+            }
+            else
+            {
+                (Visual.GetGraphicalUiElementByName("TextInstance") as TextRuntime).X += 24;
+                Icon.X += 24;
+            }
         }
     }
 }

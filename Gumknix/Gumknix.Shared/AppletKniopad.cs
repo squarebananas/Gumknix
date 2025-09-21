@@ -121,7 +121,6 @@ namespace Gumknix
             menuItemEdit.Items.Add(menuItemEditPaste);
             menuItemEditPaste.Clicked += (s, e) => _textBox.Paste();
 
-
             MenuItem menuItemEditSelectAll = new();
             menuItemEditSelectAll.Header = "Select All";
             menuItemEditSelectAll.Dock(Dock.FillHorizontally);
