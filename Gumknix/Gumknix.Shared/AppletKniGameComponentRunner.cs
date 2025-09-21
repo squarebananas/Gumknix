@@ -18,12 +18,14 @@ namespace Gumknix
         public static readonly string DefaultIcon = "\uEE6F";
 
         DrawableGameComponent drawableGameComponent;
+        bool initialized;
 
         GraphicsDevice graphicsDevice;
         GameTime gameTime;
 
         private RenderTarget2D renderTarget;
         private RenderTargetBinding[] lastTargetBindings;
+        public GraphicalUiElement SpriteGue;
 
         private ContentManager contentManager;
         private SpriteBatch spriteBatch;
@@ -48,20 +50,19 @@ namespace Gumknix
             Window.Visual.Children.Insert(1, background);
 
             Sprite sprite = new(renderTarget);
-            GraphicalUiElement spriteGue = new(sprite, null);
-            spriteGue.X = 3;
-            spriteGue.Y = 32;
-            sprite.Width = spriteGue.Width = renderTarget.Width;
-            spriteGue.WidthUnits = Gum.DataTypes.DimensionUnitType.Absolute;
-            sprite.Height = spriteGue.Height = renderTarget.Height;
-            spriteGue.HeightUnits = Gum.DataTypes.DimensionUnitType.Absolute;
+            SpriteGue = new(sprite, null);
+            SpriteGue.X = 3;
+            SpriteGue.Y = 32;
+            sprite.Width = SpriteGue.Width = renderTarget.Width;
+            SpriteGue.WidthUnits = Gum.DataTypes.DimensionUnitType.Absolute;
+            sprite.Height = SpriteGue.Height = renderTarget.Height;
+            SpriteGue.HeightUnits = Gum.DataTypes.DimensionUnitType.Absolute;
             sprite.SourceRectangle = new System.Drawing.Rectangle(0, 0, renderTarget.Width, renderTarget.Height);
-            Window.Visual.Children.Add(spriteGue);
+            Window.Visual.Children.Add(SpriteGue);
 
             if (args?.Length >= 1)
             {
                 drawableGameComponent = args[0] as DrawableGameComponent;
-                drawableGameComponent.Initialize();
             }
             else
             {
@@ -74,6 +75,12 @@ namespace Gumknix
         {
             TimeSpan totalTime = (gameTime != null) ? gameTime.TotalGameTime + GumknixInstance.GameTime.ElapsedGameTime : TimeSpan.Zero;
             gameTime = new GameTime(totalTime, GumknixInstance.GameTime.ElapsedGameTime);
+
+            if (!initialized)
+            {
+                drawableGameComponent.Initialize();
+                initialized = true;
+            }
 
             drawableGameComponent?.Update(gameTime);
 
