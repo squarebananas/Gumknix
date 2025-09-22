@@ -15,7 +15,7 @@ public class TestClass
     public static void AddButton()
     {
         Button button = new();
-        button.AddToRoot();
+        gumknix.GumRoot.Children.Add(button.Visual);
         button.Click += (s, e) => AddButton();
     }
 }

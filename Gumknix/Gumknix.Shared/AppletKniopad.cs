@@ -182,9 +182,11 @@ namespace Gumknix
 
         public override void Update()
         {
+            _menu.IsEnabled = _textBoxScrollViewer.IsEnabled = Dialogs.Count == 0;
+
             _textBox.Visual.Height = Math.Max(Window.ActualHeight - 63, _textBox.WrappedTextHeight);
             _textBox.Visual.HeightUnits = DimensionUnitType.Absolute;
-            
+
             base.Update();
         }
 

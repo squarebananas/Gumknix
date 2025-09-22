@@ -139,7 +139,7 @@ namespace Gumknix
 
         public override void Update()
         {
-            _fileViewer.Update(SystemVisual.Layer);
+            _fileViewer.Update();
 
             if ((_fileViewer.SelectedFileSystemItem != null) &&
                 ((_fileViewer.SelectedFileSystemItem.Type == FileSystemItem.Types.File) ||

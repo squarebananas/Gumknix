@@ -62,6 +62,7 @@ namespace Gumknix
             height = Math.Min(height, desktopBounds.Height);
 
             Window = new();
+            Window.Name = "AppletWindow" + AppletId;
             Window.Visual.Width = width;
             Window.Visual.Height = height;
             Window.Visual.Anchor(Anchor.Center);
@@ -199,6 +200,8 @@ namespace Gumknix
                     Window.IsVisible = false;
                 }
             };
+
+            GumknixInstance.GumRenderables.Add(Window.Visual);
         }
 
         public virtual void Update()
@@ -208,19 +211,9 @@ namespace Gumknix
             if (IsClosed)
                 return;
 
-            for (int i = 0; i < Menu.PopupRoot.Children.Count; i++)
-            {
-                GraphicalUiElement gue = Menu.PopupRoot.Children[i] as GraphicalUiElement;
-                if ((gue != null) && (gue.Layer != Layer))
-                    if (Layer.ContainsRenderable(gue) == false)
-                        Layer.Add(gue);
-            }
-
-            if (Dialogs.Count >= 1)
-                Window.IsEnabled = false;
 
             UpdateDialogs();
-            Window.IsEnabled = Dialogs.Count == 0;
+            _titleBarClose.IsEnabled = Dialogs.Count == 0;
 
             if (MoveToFrontRequest)
                 MoveToFront();
@@ -281,6 +274,8 @@ namespace Gumknix
         public override void ShowDialog(BaseDialog dialog)
         {
             Dialogs.Add(dialog);
+            int appletWindowIndex = GumknixInstance.GumRenderables.IndexOf(Window.Visual);
+            GumknixInstance.GumRenderables.Insert(appletWindowIndex + 1, dialog.Window.Visual);
             MoveToFrontRequest = true;
         }
 
@@ -290,32 +285,16 @@ namespace Gumknix
             for (int i = 0; i < Dialogs.Count; i++)
                 Dialogs[i].Window.IsVisible = true;
 
-            Window.RemoveFromRoot();
-            Window.AddToRoot();
+            GumknixInstance.GumRenderables.Remove(Window.Visual);
             for (int i = 0; i < Dialogs.Count; i++)
-            {
-                Dialogs[i].Window.RemoveFromRoot();
-                Dialogs[i].Window.AddToRoot();
-            }
+                GumknixInstance.GumRenderables.Remove(Dialogs[i].Window.Visual);
 
-            if (Layer != null)
-            {
-                Layer.Remove(Window.Visual);
-                for (int i = 0; i < Dialogs.Count; i++)
-                    Layer.Remove(Dialogs[i].Window.Visual);
-                GumService.Default.Renderer.RemoveLayer(Layer);
-            }
-
-            Layer = new();
-            Layer.LayerCameraSettings ??= new LayerCameraSettings() { Zoom = 1f };
-            GumService.Default.Renderer.AddLayer(Layer);
-            Layer.Add(Window.Visual);
+            int taskBarIndex = GumknixInstance.GumRenderables.IndexOf(GumknixInstance.TaskBar.Panel.Visual);
+            GumknixInstance.GumRenderables.Insert(taskBarIndex, Window.Visual);
             for (int i = 0; i < Dialogs.Count; i++)
-                Layer.Add(Dialogs[i].Window.Visual);
+                GumknixInstance.GumRenderables.Insert(taskBarIndex + i + 1, Dialogs[i].Window.Visual);
 
             GumknixInstance.FocusApplet(this);
-            GumknixInstance.TaskBar.MoveToFront();
-            GumknixInstance.TooltipsMoveToFront();
 
             MoveToFrontRequest = false;
         }
@@ -369,13 +348,8 @@ namespace Gumknix
         protected virtual void Close()
         {
             GumknixInstance.TaskBar.RemoveRunningApplet(this);
-
-            Layer.Remove(Window.Visual);
-            GumService.Default.Renderer.RemoveLayer(Layer);
-
             Window.Close();
-            Window.RemoveFromRoot();
-
+            Window.Visual.RemoveFromRoot();
             IsClosed = true;
         }
 

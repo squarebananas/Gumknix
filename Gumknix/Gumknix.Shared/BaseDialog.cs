@@ -7,6 +7,7 @@ using Gum.DataTypes;
 using Gum.Forms;
 using Gum.Forms.Controls;
 using Gum.Wireframe;
+using MonoGameGum;
 using MonoGameGum.GueDeriving;
 using RenderingLibrary.Graphics;
 
@@ -39,6 +40,7 @@ namespace Gumknix
             Icon = icon;
 
             Window = new();
+            Window.Name = "DialogWindow";
             Window.Visual.Anchor(Anchor.Center);
             Window.ResizeMode = ResizeMode.NoResize;
 
@@ -117,7 +119,6 @@ namespace Gumknix
 
         protected virtual void Close()
         {
-            SystemVisual.Layer.Remove(Window.Visual);
             Window.Close();
             Window.RemoveFromRoot();
             IsClosed = true;

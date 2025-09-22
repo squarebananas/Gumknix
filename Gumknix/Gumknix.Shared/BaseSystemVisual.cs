@@ -9,17 +9,11 @@ namespace Gumknix
     {
         public Gumknix GumknixInstance { get; init; }
 
-        public Layer Layer { get; set; }
         public List<BaseDialog> Dialogs { get; private set; }
 
         public BaseSystemVisual(Gumknix gumknix)
         {
             GumknixInstance = gumknix;
-
-            Layer = new();
-            Layer.LayerCameraSettings ??= new LayerCameraSettings() { Zoom = 1f };
-            GumService.Default.Renderer.AddLayer(Layer);
-
             Dialogs = [];
         }
 

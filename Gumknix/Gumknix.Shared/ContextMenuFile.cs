@@ -38,7 +38,7 @@ namespace Gumknix
                 item.Visual.WidthUnits = DimensionUnitType.Absolute;
             }
 
-            this.AddToRoot();
+            SystemVisual.GumknixInstance.GumRenderables.Add(Visual);
             IsFocused = true;
             IsSelected = true;
             Dock(Gum.Wireframe.Dock.SizeToChildren);
@@ -323,10 +323,8 @@ namespace Gumknix
         {
             HidePopupRecursively();
             for (int i = 0; i < Items.Count; i++)
-                (Items[i] as MenuItem).RemoveFromRoot();
-            Visual.Children.Clear();
+                (Items[i] as MenuItem).Visual.RemoveFromRoot();
             Visual.RemoveFromRoot();
-            this.RemoveFromRoot();
             Close();
             IsClosed = true;
         }

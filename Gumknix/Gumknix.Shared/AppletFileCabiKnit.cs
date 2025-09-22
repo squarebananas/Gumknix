@@ -27,7 +27,7 @@ namespace Gumknix
 
         public override void Update()
         {
-            _fileViewer.Update(Layer);
+            _fileViewer.Update();
 #if BLAZORGL
             if (_fileViewer.SelectedTreeItem?.Name != null)
                 SetTitle($"{_fileViewer.SelectedTreeItem.Name} - {DefaultTitle}");

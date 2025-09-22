@@ -410,7 +410,7 @@ namespace Gumknix
         {
 #if BLAZORGL
             Rectangle area = new(0, 0, (int)Window.ActualWidth, (int)Window.ActualHeight);
-            int currentLayerIndex = GumService.Default.Renderer.Layers.IndexOf(Layer);
+            int currentLayerIndex = GumknixInstance.GumRenderables.IndexOf(Window.Visual);
 
             List<Rectangle> rectangles = [];
             for (int i = 0; i < GumknixInstance.RunningApplets.Count; i++)
@@ -418,7 +418,7 @@ namespace Gumknix
                 BaseApplet applet = GumknixInstance.RunningApplets[i];
                 if ((applet != this) && applet.Window.IsVisible)
                 {
-                    int otherLayerIndex = GumService.Default.Renderer.Layers.IndexOf(applet.Layer);
+                    int otherLayerIndex = GumknixInstance.GumRenderables.IndexOf(applet.Window.Visual);
                     if (otherLayerIndex < currentLayerIndex)
                         continue;
 

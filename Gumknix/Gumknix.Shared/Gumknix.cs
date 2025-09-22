@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using Gum.Wireframe;
 using MonoGameGum;
-using RenderingLibrary;
 using RenderingLibrary.Graphics;
 
 #if BLAZORGL
@@ -19,6 +19,8 @@ namespace Gumknix
     {
         public GameServiceContainer GameServiceContainer { get; init; }
         public GameTime GameTime { get; set; }
+
+        public System.Collections.ObjectModel.ObservableCollection<IRenderableIpso> GumRenderables { get; private set; }
 
         public Desktop Desktop { get; private set; }
         public TaskBar TaskBar { get; private set; }
@@ -53,6 +55,8 @@ namespace Gumknix
         public Gumknix(GameServiceContainer gameServiceContainer)
         {
             GameServiceContainer = gameServiceContainer;
+
+            GumRenderables = GumService.Default.Root.Children;
 
             AvailableApplets = [
                 typeof(AppletKniopad),
@@ -151,53 +155,34 @@ namespace Gumknix
             FocusedApplet = null; // todo next layer in focus
         }
 
-        internal void TooltipsMoveToFront()
-        {
-            List<IRenderableIpso> renderables = new(TooltipLayer.Renderables);
-
-            for (int i = 0; i < renderables.Count; i++)
-                TooltipLayer.Remove(TooltipLayer.Renderables[i]);
-
-            GumService.Default.Renderer.RemoveLayer(TooltipLayer);
-            TooltipLayer = new();
-            GumService.Default.Renderer.AddLayer(TooltipLayer);
-
-            for (int i = 0; i < renderables.Count; i++)
-                TooltipLayer.Add(renderables[i]);
-        }
-
         public object ObjectUnderCursor()
         {
-            for (int i = GumService.Default.Renderer.Layers.Count - 1; i >= 0; i--)
+            InteractiveGue interactiveGue = GumService.Default.Cursor.WindowOver;
+            while ((interactiveGue != null) &&
+                (((interactiveGue is Gum.Forms.DefaultVisuals.WindowVisual) == false)) &&
+                (interactiveGue != TaskBar.Panel.Visual))
+                interactiveGue = interactiveGue.Parent as InteractiveGue;
+
+            if (interactiveGue == TaskBar.Panel.Visual)
+                return TaskBar;
+
+            if (interactiveGue is Gum.Forms.DefaultVisuals.WindowVisual)
             {
-                Layer layer = GumService.Default.Renderer.Layers[i];
-                for (int j = 0; j < layer.Renderables.Count; j++)
+                for (int j = 0; j < RunningApplets.Count; j++)
                 {
-                    IRenderableIpso renderable = layer.Renderables[j];
-                    if ((renderable.Visible == false) ||
-                        (renderable.HasCursorOver(GumService.Default.Cursor.X, GumService.Default.Cursor.Y) == false))
-                        continue;
+                    BaseApplet applet = RunningApplets[j];
+                    if (interactiveGue == applet.Window.Visual)
+                        return applet;
 
-                    if (layer == TaskBar.Layer)
-                        return TaskBar;
-
-                    for (int k = 0; k < RunningApplets.Count; k++)
+                    for (int l = 0; l < applet.Dialogs.Count; l++)
                     {
-                        BaseApplet applet = RunningApplets[k];
-                        if (layer == applet.Layer)
-                        {
-                            for (int l = 0; l < applet.Dialogs.Count; l++)
-                            {
-                                BaseDialog dialog = applet.Dialogs[l];
-                                if (dialog.Window.Visual.HasCursorOver(GumService.Default.Cursor.X, GumService.Default.Cursor.Y))
-                                    return dialog;
-                            }
-
-                            return applet;
-                        }
+                        BaseDialog dialog = applet.Dialogs[l];
+                        if (interactiveGue == dialog.Window.Visual)
+                            return dialog;
                     }
                 }
             }
+
             return Desktop;
         }
 

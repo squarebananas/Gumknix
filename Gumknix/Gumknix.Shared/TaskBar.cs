@@ -18,6 +18,8 @@ namespace Gumknix
     {
         public Gumknix Gumknix { get; private set; }
 
+        public Panel Panel { get; init; }
+
         private ColoredRectangleRuntime _background;
         private StackPanel _stackPanel;
         private TaskBarStartButton _startButton;
@@ -28,11 +30,19 @@ namespace Gumknix
         private MenuItem _startMenu;
         private ColoredRectangleRuntime _startDropShadow;
 
+        private IRenderableIpso PopupElement;
+
         public bool IsStartOpen => _startStackPanel.Visual.Parent != null;
 
         internal TaskBar(Gumknix gumknix) : base(gumknix)
         {
             Gumknix = gumknix;
+
+            Panel = new();
+            Panel.Name = "TaskBar";
+            Panel.Visual.Dock(Dock.Fill);
+            Panel.Visual.Anchor(Anchor.TopLeft);
+            GumknixInstance.GumRenderables.Add(Panel.Visual);
 
             _background = new()
             {
@@ -49,9 +59,7 @@ namespace Gumknix
                 Height = 48,
                 HeightUnits = DimensionUnitType.Absolute
             };
-            _background.AddToRoot();
-            GumService.Default.Renderer.MainLayer.Remove(_background);
-            Layer.Add(_background);
+            Panel.Visual.AddChild(_background);
 
             _stackPanel = new();
             _stackPanel.Orientation = Orientation.Horizontal;
@@ -62,9 +70,7 @@ namespace Gumknix
             _stackPanel.Visual.StackSpacing = 10;
             _stackPanel.Dock(Dock.FillHorizontally);
             _stackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
-            _stackPanel.Visual.AddToRoot();
-            GumService.Default.Renderer.MainLayer.Remove(_stackPanel.Visual);
-            Layer.Add(_stackPanel.Visual);
+            Panel.Visual.AddChild(_stackPanel);
 
             _startButton = new(this);
             _stackPanel.AddChild(_startButton);
@@ -132,11 +138,6 @@ namespace Gumknix
         {
             if (Menu.PopupRoot.Children.Count >= 1)
             {
-                GraphicalUiElement gue = Menu.PopupRoot.Children[0] as GraphicalUiElement;
-                if ((gue != null) && (gue.Layer != Layer))
-                    if (Layer.ContainsRenderable(gue) == false)
-                        Layer.Add(gue);
-
                 if (GumService.Default.Cursor.PrimaryClick &&
                     (_startStackPanel.Visual.Parent != null) &&
                     (_startButton.GetVisual(
@@ -153,12 +154,8 @@ namespace Gumknix
 
         public void ShowStart()
         {
-            _startDropShadow.AddToRoot();
-            _startStackPanel.AddToRoot();
-            GumService.Default.Renderer.MainLayer.Remove(_startDropShadow);
-            GumService.Default.Renderer.MainLayer.Remove(_startStackPanel.Visual);
-            Layer.Add(_startDropShadow);
-            Layer.Add(_startStackPanel.Visual);
+            GumknixInstance.GumRenderables.Add(_startDropShadow);
+            GumknixInstance.GumRenderables.Add(_startStackPanel.Visual);
 
             _startMenu = new();
             _startMenu.Header = "";
@@ -178,6 +175,7 @@ namespace Gumknix
                 if (states[i].Variables.GetVariableSave("Background.Color") != null)
                     states[i].Variables.GetVariableSave("Background.Color").Value = Color.White;
             }
+            _startMenu.UpdateState();
 
             MenuItem MenuItemAllApplets = new();
             MenuItemAllApplets.Header = "All Applets                          >";
@@ -219,20 +217,25 @@ namespace Gumknix
             _startMenu.IsFocused = true;
             _startMenu.IsSelected = true;
             _startMenu.Dock(Dock.SizeToChildren);
-            _startMenu.Show(Layer);
 
-            (Menu.PopupRoot.Children[0].Children[0] as GraphicalUiElement).Visible = false;
+            PopupElement = FrameworkElement.PopupRoot.Children[^1];
+            (PopupElement.Children[0] as GraphicalUiElement).Visible = false;
         }
 
         public void CloseStart()
         {
             _startMenu.HidePopupRecursively();
+            for (int i = 0; i < _startMenu.Items.Count; i++)
+                (_startMenu.Items[i] as MenuItem).Visual.RemoveFromRoot();
+            _startMenu.Visual.RemoveFromRoot();
+            _startMenu.Close();
             _startMenu = null;
 
             _startDropShadow.RemoveFromRoot();
-            _startStackPanel.RemoveFromRoot();
-            Layer.Remove(_startDropShadow);
-            Layer.Remove(_startStackPanel.Visual);
+            _startStackPanel.Visual.RemoveFromRoot();
+
+            Menu.PopupRoot.Children.Remove(PopupElement);
+            PopupElement = null;
         }
 
         internal void AddRunningApplet(BaseApplet runningApplet)
@@ -248,23 +251,8 @@ namespace Gumknix
         public override void ShowDialog(BaseDialog dialog)
         {
             Dialogs.Add(dialog);
-            Layer.Add(dialog.Window.Visual);
-        }
-
-        internal void MoveToFront()
-        {
-            _background.RemoveFromRoot();
-            _stackPanel.RemoveFromRoot();
-            _background.AddToRoot();
-            _stackPanel.AddToRoot();
-
-            Layer.Remove(_background);
-            Layer.Remove(_stackPanel.Visual);
-            GumService.Default.Renderer.RemoveLayer(Layer);
-            Layer = new();
-            GumService.Default.Renderer.AddLayer(Layer);
-            Layer.Add(_background);
-            Layer.Add(_stackPanel.Visual);
+            int panelIndex = GumknixInstance.GumRenderables.IndexOf(Panel.Visual);
+            GumknixInstance.GumRenderables.Insert(panelIndex + 1, dialog.Window.Visual);
         }
 
         internal void ApplyTheme(SettingsThemes.Theme theme)

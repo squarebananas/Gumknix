@@ -23,14 +23,15 @@ namespace Gumknix
 {
     public class Desktop : BaseSystemVisual
     {
-        private Panel _panel;
+        public Panel Panel { get; init; }
+
         private List<List<DesktopIcon>> _iconGrid;
         private Point _gridSpacing;
         private int _gridMaxVisibleX;
         private int _gridMaxVisibleY;
 
-        public Rectangle Bounds => new Rectangle((int)_panel.Visual.AbsoluteLeft, (int)_panel.Visual.AbsoluteTop,
-            (int)_panel.Visual.GetAbsoluteWidth(), (int)_panel.Visual.GetAbsoluteHeight());
+        public Rectangle Bounds => new Rectangle((int)Panel.Visual.AbsoluteLeft, (int)Panel.Visual.AbsoluteTop,
+            (int)Panel.Visual.GetAbsoluteWidth(), (int)Panel.Visual.GetAbsoluteHeight());
 
         private ContextMenuFile _contextMenu;
 
@@ -59,11 +60,10 @@ namespace Gumknix
             _gridMaxVisibleX = 5;
             _gridMaxVisibleY = 5;
 
-            _panel = new Panel();
-            _panel.Name = "Desktop";
-            _panel.Dock(Dock.Fill);
-            _panel.AddToRoot();
-            Layer.Add(_panel.Visual);
+            Panel = new();
+            Panel.Name = "Desktop";
+            Panel.Dock(Dock.Fill);
+            GumknixInstance.GumRenderables.Add(Panel.Visual);
 
             _savedSettings = new();
         }
@@ -207,8 +207,8 @@ namespace Gumknix
 
             UpdateDialogs();
 
-            _gridMaxVisibleX = (int)(_panel.Visual.GetAbsoluteWidth() / _gridSpacing.X);
-            _gridMaxVisibleY = (int)(_panel.Visual.GetAbsoluteHeight() / _gridSpacing.Y);
+            _gridMaxVisibleX = (int)(Panel.Visual.GetAbsoluteWidth() / _gridSpacing.X);
+            _gridMaxVisibleY = (int)(Panel.Visual.GetAbsoluteHeight() / _gridSpacing.Y);
             GridExpand(new Point(_gridMaxVisibleX, _gridMaxVisibleY));
 
             Point CursorOverSlot = CursorOverGridSlot();
@@ -410,7 +410,7 @@ namespace Gumknix
             icon.Visual.Anchor(Anchor.TopLeft);
             icon.Visual.X = gridSlot.Value.X * _gridSpacing.X;
             icon.Visual.Y = gridSlot.Value.Y * _gridSpacing.Y;
-            _panel.AddChild(icon);
+            Panel.AddChild(icon);
 
             SetSavedSettingValue(icon);
         }
@@ -541,10 +541,9 @@ namespace Gumknix
 
         public override void ShowDialog(BaseDialog dialog)
         {
-            dialog.Window.RemoveFromRoot();
-            dialog.Window.AddToRoot();
-            Layer.Add(dialog.Window.Visual);
             Dialogs.Add(dialog);
+            int panelIndex = GumknixInstance.GumRenderables.IndexOf(Panel.Visual);
+            GumknixInstance.GumRenderables.Insert(panelIndex + 1, dialog.Window.Visual);
         }
 
         public FileSystemItem CursorOverFileItem()

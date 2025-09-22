@@ -122,6 +122,7 @@ namespace Gumknix
             _treeListBox = new();
             _treeListBox.Visual.Dock(Dock.FillVertically);
             _treeListBox.Visual.Anchor(Anchor.TopLeft);
+            _treeListBox.Visual.MinWidth = 100;
             _treeListBox.Visual.Width = 265;
             _treeListBox.Visual.WidthUnits = DimensionUnitType.Absolute;
             _treeListBox.ListBoxItemFormsType = typeof(FileListBoxItem);
@@ -142,7 +143,7 @@ namespace Gumknix
             _stackPanel.AddChild(_splitter);
 
             _folderListBox = new();
-            _folderListBox.Visual.Dock(Dock.FillVertically);
+            _folderListBox.Visual.Dock(Dock.Fill);
             _folderListBox.Visual.Anchor(Anchor.TopLeft);
             _folderListBox.Visual.MinWidth = 100;
             _folderListBox.Visual.Width = -270;
@@ -156,7 +157,7 @@ namespace Gumknix
             LoadSettings();
         }
 
-        public void Update(Layer layer)
+        public void Update()
         {
             bool cursorOverTreeList = _treeListBox.GetVisual("Background").HasCursorOver(GumService.Default.Cursor.X, GumService.Default.Cursor.Y);
             bool cursorOverFolderList = _folderListBox.GetVisual("Background").HasCursorOver(GumService.Default.Cursor.X, GumService.Default.Cursor.Y);
