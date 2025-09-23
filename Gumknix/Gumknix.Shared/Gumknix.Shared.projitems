@@ -36,7 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Desktop.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PseudoSystem\System.Console.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GumknixDemo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HTMLEmbed.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HTMLViewContainer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SettingsThemes.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TaskBar.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Gumknix.cs" />

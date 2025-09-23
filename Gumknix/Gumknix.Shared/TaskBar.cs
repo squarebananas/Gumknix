@@ -20,11 +20,11 @@ namespace Gumknix
 
         public Panel Panel { get; init; }
 
-        private ColoredRectangleRuntime _background;
+        public ColoredRectangleRuntime Background { get; init; }
         private StackPanel _stackPanel;
         private TaskBarStartButton _startButton;
 
-        private StackPanel _startStackPanel;
+        public StackPanel StartStackPanel { get; init; }
         private TextRuntime _startLabel;
         private ColoredRectangleRuntime _startBackground;
         private MenuItem _startMenu;
@@ -32,7 +32,7 @@ namespace Gumknix
 
         private IRenderableIpso PopupElement;
 
-        public bool IsStartOpen => _startStackPanel.Visual.Parent != null;
+        public bool IsStartOpen => StartStackPanel.Visual.Parent != null;
 
         internal TaskBar(Gumknix gumknix) : base(gumknix)
         {
@@ -44,7 +44,7 @@ namespace Gumknix
             Panel.Visual.Anchor(Anchor.TopLeft);
             GumknixInstance.GumRenderables.Add(Panel.Visual);
 
-            _background = new()
+            Background = new()
             {
                 Name = "Background",
                 Color = Styling.ActiveStyle.Colors.PrimaryDark,
@@ -59,7 +59,7 @@ namespace Gumknix
                 Height = 48,
                 HeightUnits = DimensionUnitType.Absolute
             };
-            Panel.Visual.AddChild(_background);
+            Panel.Visual.AddChild(Background);
 
             _stackPanel = new();
             _stackPanel.Orientation = Orientation.Horizontal;
@@ -88,18 +88,18 @@ namespace Gumknix
             _startDropShadow.Height = 410f;
             _startDropShadow.HeightUnits = DimensionUnitType.Absolute;
 
-            _startStackPanel = new();
-            _startStackPanel.Orientation = Orientation.Horizontal;
-            _startStackPanel.X = 20;
-            _startStackPanel.Visual.XOrigin = HorizontalAlignment.Left;
-            _startStackPanel.Visual.XUnits = GeneralUnitType.PixelsFromSmall;
-            _startStackPanel.Y = -58;
-            _startStackPanel.Visual.YOrigin = VerticalAlignment.Bottom;
-            _startStackPanel.Visual.YUnits = GeneralUnitType.PixelsFromLarge;
-            _startStackPanel.Visual.Width = 300;
-            _startStackPanel.Visual.WidthUnits = DimensionUnitType.Absolute;
-            _startStackPanel.Visual.Height = 400f;
-            _startStackPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
+            StartStackPanel = new();
+            StartStackPanel.Orientation = Orientation.Horizontal;
+            StartStackPanel.X = 20;
+            StartStackPanel.Visual.XOrigin = HorizontalAlignment.Left;
+            StartStackPanel.Visual.XUnits = GeneralUnitType.PixelsFromSmall;
+            StartStackPanel.Y = -58;
+            StartStackPanel.Visual.YOrigin = VerticalAlignment.Bottom;
+            StartStackPanel.Visual.YUnits = GeneralUnitType.PixelsFromLarge;
+            StartStackPanel.Visual.Width = 300;
+            StartStackPanel.Visual.WidthUnits = DimensionUnitType.Absolute;
+            StartStackPanel.Visual.Height = 400f;
+            StartStackPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
 
             ColoredRectangleRuntime startBackgroundBar = new()
             {
@@ -110,7 +110,7 @@ namespace Gumknix
             };
             startBackgroundBar.Anchor(Anchor.Left);
             startBackgroundBar.Dock(Dock.FillVertically);
-            _startStackPanel.Visual.AddChild(startBackgroundBar);
+            StartStackPanel.Visual.AddChild(startBackgroundBar);
 
             _startBackground = new();
             _startBackground.Name = "StartBackground";
@@ -119,7 +119,7 @@ namespace Gumknix
             _startBackground.WidthUnits = DimensionUnitType.RelativeToParent;
             _startBackground.Anchor(Anchor.Left);
             _startBackground.Dock(Dock.FillVertically);
-            _startStackPanel.Visual.AddChild(_startBackground);
+            StartStackPanel.Visual.AddChild(_startBackground);
 
             _startLabel = new();
             _startLabel.Text = "Gumknix";
@@ -139,7 +139,7 @@ namespace Gumknix
             if (Menu.PopupRoot.Children.Count >= 1)
             {
                 if (GumService.Default.Cursor.PrimaryClick &&
-                    (_startStackPanel.Visual.Parent != null) &&
+                    (StartStackPanel.Visual.Parent != null) &&
                     (_startButton.GetVisual(
                     (Gum.Forms.DefaultVisuals.Styling.ActiveStyle == null) ? "ButtonBackground" : "Background").HasCursorOver(
                     GumService.Default.Cursor.X, GumService.Default.Cursor.Y) == false) &&
@@ -155,7 +155,7 @@ namespace Gumknix
         public void ShowStart()
         {
             GumknixInstance.GumRenderables.Add(_startDropShadow);
-            GumknixInstance.GumRenderables.Add(_startStackPanel.Visual);
+            GumknixInstance.GumRenderables.Add(StartStackPanel.Visual);
 
             _startMenu = new();
             _startMenu.Header = "";
@@ -232,7 +232,7 @@ namespace Gumknix
             _startMenu = null;
 
             _startDropShadow.RemoveFromRoot();
-            _startStackPanel.Visual.RemoveFromRoot();
+            StartStackPanel.Visual.RemoveFromRoot();
 
             Menu.PopupRoot.Children.Remove(PopupElement);
             PopupElement = null;
@@ -257,7 +257,7 @@ namespace Gumknix
 
         internal void ApplyTheme(SettingsThemes.Theme theme)
         {
-            _background.Color = theme.GumStyling.Colors.PrimaryDark;
+            Background.Color = theme.GumStyling.Colors.PrimaryDark;
             _startBackground.Color = theme.GumStyling.Colors.PrimaryDark;
             _startButton.ApplyTheme(theme);
         }

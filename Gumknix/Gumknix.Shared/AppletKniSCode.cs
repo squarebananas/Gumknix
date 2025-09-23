@@ -47,10 +47,6 @@ namespace Gumknix
 #if BLAZORGL
         private ModuleMonaco _monaco;
 
-        private Canvas _canvas;
-        private HTMLEmbed _editorHTMLEmbed;
-        private HTMLEmbed _svgCutoutHTMLEmbed;
-
         public ModuleMonaco.LanguageDefinition[] LanguageDefinitions { get; private set; }
 #endif
 
@@ -65,7 +61,7 @@ namespace Gumknix
         private StackPanel _innerPanelLeft;
         private StackPanel _innerPanelRight;
 
-        private ContainerRuntime _textEditorContainer;
+        private HTMLViewContainer _textEditorContainer;
         private ScrollViewer _outputPanelScrollViewer;
         private KniopadTextBox _outputPanel;
         private ListBox _solutionFilesListBox;
@@ -256,7 +252,7 @@ namespace Gumknix
             _innerPanelLeft.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             _innerPanel.AddChild(_innerPanelLeft);
 
-            _textEditorContainer = new();
+            _textEditorContainer = new(GumknixInstance, Window);
             _textEditorContainer.Dock(Dock.FillHorizontally);
             _textEditorContainer.Anchor(Anchor.TopLeft);
             _textEditorContainer.Height = 550;
@@ -339,6 +335,8 @@ namespace Gumknix
 
 #if BLAZORGL
             _monaco = ModuleMonaco.Create();
+            _textEditorContainer.Create(_monaco.Uid.ToString());
+
             _monaco.OnScriptLoaded += (s, e) => _monaco.InitializeInstance();
             _monaco.OnInstanceLoaded += (s, e) =>
             {
@@ -380,18 +378,6 @@ namespace Gumknix
                 }
             };
 
-            _editorHTMLEmbed = HTMLEmbed.Create(
-                $"""
-                <div id = "editorUid{_monaco.Uid}" style = "position: absolute; display: none;">
-                </div>
-                """);
-
-            _svgCutoutHTMLEmbed = HTMLEmbed.Create(
-                $"""
-                <svg id="svgCutoutUid{_monaco.Uid}" width="0" height="0" style="position:absolute;">
-                </svg>
-                """);
-
             _monaco.InitializeLoaderScript();
 
             _referenceService ??= new(Program.NavigationManager);
@@ -408,87 +394,7 @@ namespace Gumknix
 
         public override void PostGumUpdate()
         {
-#if BLAZORGL
-            Rectangle area = new(0, 0, (int)Window.ActualWidth, (int)Window.ActualHeight);
-            int currentLayerIndex = GumknixInstance.GumRenderables.IndexOf(Window.Visual);
-
-            List<Rectangle> rectangles = [];
-            for (int i = 0; i < GumknixInstance.RunningApplets.Count; i++)
-            {
-                BaseApplet applet = GumknixInstance.RunningApplets[i];
-                if ((applet != this) && applet.Window.IsVisible)
-                {
-                    int otherLayerIndex = GumknixInstance.GumRenderables.IndexOf(applet.Window.Visual);
-                    if (otherLayerIndex < currentLayerIndex)
-                        continue;
-
-                    if (applet != this)
-                    {
-                        Rectangle windowArea = new(
-                            (int)(applet.Window.Visual.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
-                            (int)(applet.Window.Visual.AbsoluteTop - _textEditorContainer.AbsoluteTop),
-                            (int)applet.Window.Visual.GetAbsoluteWidth(),
-                            (int)applet.Window.Visual.GetAbsoluteHeight());
-                        if (area.Intersects(windowArea))
-                            rectangles.Add(windowArea);
-                    }
-
-                    for (int j = 0; j < applet.Dialogs.Count; j++)
-                    {
-                        BaseDialog dialog = applet.Dialogs[j];
-                        Rectangle dialogArea = new(
-                            (int)(dialog.Window.Visual.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
-                            (int)(dialog.Window.Visual.AbsoluteTop - _textEditorContainer.AbsoluteTop),
-                            (int)dialog.Window.Visual.GetAbsoluteWidth(),
-                            (int)dialog.Window.Visual.GetAbsoluteHeight());
-                        if (area.Intersects(dialogArea))
-                            rectangles.Add(dialogArea);
-                    }
-                }
-            }
-
-            for (int i = 0; i < Menu.PopupRoot.Children.Count; i++)
-            {
-                GraphicalUiElement gue = Menu.PopupRoot.Children[i] as GraphicalUiElement;
-                Rectangle popupArea = new((int)(gue.AbsoluteLeft - _textEditorContainer.AbsoluteLeft),
-                    (int)(gue.AbsoluteTop - _textEditorContainer.AbsoluteTop),
-                    (int)gue.GetAbsoluteWidth(),
-                    (int)gue.GetAbsoluteHeight());
-                if (area.Intersects(popupArea))
-                    rectangles.Add(popupArea);
-            }
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"  <defs>");
-            sb.AppendLine($"    <mask id=\"cutoutUid{_monaco.Uid}\">");
-            sb.AppendLine($"      <rect x=\"{area.Left}\" y=\"{area.Top}\" width=\"{area.Width}\" height=\"{area.Height}\" fill=\"white\"/>");
-            for (int i = 0; i < rectangles.Count; i++)
-            {
-                Rectangle r = rectangles[i];
-                sb.AppendLine($"      <rect x=\"{r.Left}\" y=\"{r.Top}\" width=\"{r.Width}\" height=\"{r.Height}\" fill=\"black\"/>");
-            }
-            sb.AppendLine($"    </mask>");
-            sb.AppendLine($"  </defs>");
-
-            if (Window.IsVisible)
-            {
-                _canvas ??= nkast.Wasm.Dom.Window.Current.Document.GetElementById<Canvas>("theCanvas");
-                DOMRect clientBounds = _canvas.GetBoundingClientRect();
-
-                _svgCutoutHTMLEmbed.SetInnerHTML(sb.ToString());
-                _editorHTMLEmbed.Style.SetProperty("display", "block");
-                _editorHTMLEmbed.Style.SetProperty("left", $"{_textEditorContainer.AbsoluteLeft}px");
-                _editorHTMLEmbed.Style.SetProperty("top", $"{_textEditorContainer.AbsoluteTop}px");
-                _editorHTMLEmbed.Style.SetProperty("width", $"{_textEditorContainer.GetAbsoluteWidth()}px");
-                _editorHTMLEmbed.Style.SetProperty("height", $"{_textEditorContainer.GetAbsoluteHeight()}px");
-                _editorHTMLEmbed.Style.SetProperty("mask", $"url(#cutoutUid{_monaco.Uid})");
-                _editorHTMLEmbed.Style.SetProperty("z-index", "9999");
-            }
-            else
-            {
-                _editorHTMLEmbed.Style.SetProperty("display", "none");
-            }
-#endif
+            _textEditorContainer.Update();
         }
 
         public async Task Compile()
@@ -1244,8 +1150,7 @@ namespace Gumknix
         {
 #if BLAZORGL
             _monaco.Close();
-            _svgCutoutHTMLEmbed.Remove();
-            _editorHTMLEmbed.Remove();
+            _textEditorContainer.Remove();
 #endif
             base.Close();
         }

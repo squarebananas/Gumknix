@@ -24,10 +24,9 @@ namespace Gumknix
         private TextBox _addressTextBox;
 
 #if BLAZORGL
-        private Canvas _canvas;
-        private HTMLEmbed _containerHTMLEmbed;
+        private HTMLViewContainer _htmlViewContainer;
 
-        public HTMLElement<Div> _externalDiv;
+        public Div _externalDiv;
 #endif
 
         //public string Address { get; set; } = "https://www.squarebananas-games.com";
@@ -88,7 +87,7 @@ namespace Gumknix
 
             if (args?.Length >= 1)
             {
-                HTMLElement<Div> HTMLElement = args[0] as HTMLElement<Div>;
+                Div HTMLElement = args[0] as Div;
                 if (HTMLElement != null)
                 {
                     _externalDiv = HTMLElement;
@@ -109,10 +108,16 @@ namespace Gumknix
 
 #if BLAZORGL
             if (_externalDiv == null)
-                _containerHTMLEmbed = HTMLEmbed.Create($"""
-                    <div id = "gumternetAppletId{AppletId}" style="position: absolute; display: none; background-color: #000000; z-index: 3;">
-                    </div>
-                    """);
+            {
+                _htmlViewContainer = new(GumknixInstance, Window);
+                _htmlViewContainer.Dock(Dock.Fill);
+                _htmlViewContainer.Anchor(Anchor.TopLeft);
+                _htmlViewContainer.Height = -65;
+                _htmlViewContainer.HeightUnits = DimensionUnitType.RelativeToParent;
+                _htmlViewContainer.MinHeight = 200;
+                _htmlViewContainer.Create(AppletId.ToString());
+                MainStackPanel.AddChild(_htmlViewContainer);
+            }
 
             //_HTMLEmbed = HTMLEmbed.Create(
             //$"""
@@ -160,31 +165,8 @@ namespace Gumknix
 
         public override void Update()
         {
-#if BLAZORGL
-            _canvas ??= nkast.Wasm.Dom.Window.Current.Document.GetElementById<nkast.Wasm.Canvas.Canvas>("theCanvas");
-            DOMRect clientBounds = _canvas.GetBoundingClientRect();
-
-            if (_externalDiv != null)
-            {
-                //_externalDiv.Style.SetProperty("display", "block");
-                _externalDiv.Style.SetProperty("overflow", "auto");
-                _externalDiv.Style.SetProperty("left", $"{(int)(clientBounds.Left + Window.AbsoluteLeft + 1)}px");
-                _externalDiv.Style.SetProperty("top", $"{(int)(clientBounds.Left + Window.AbsoluteTop + 70)}px");
-                _externalDiv.Style.SetProperty("width", $"{(int)Window.ActualWidth - 2}px");
-                _externalDiv.Style.SetProperty("height", $"{(int)Window.ActualHeight - 51}px");
-            }
-
-            if (_containerHTMLEmbed != null)
-            {
-                _containerHTMLEmbed.Style.SetProperty("display", "block");
-                _containerHTMLEmbed.Style.SetProperty("overflow", "hidden");
-                _containerHTMLEmbed.Style.SetProperty("left", $"{(int)(clientBounds.Left + Window.AbsoluteLeft + 1)}px");
-                _containerHTMLEmbed.Style.SetProperty("top", $"{(int)(clientBounds.Left + Window.AbsoluteTop + 70)}px");
-                _containerHTMLEmbed.Style.SetProperty("width", $"{(int)Window.ActualWidth - 2}px");
-                _containerHTMLEmbed.Style.SetProperty("height", $"{(int)Window.ActualHeight - 51}px");
-                //_HTMLEmbed.Style.SetProperty("mask", $"url(#cutoutUid{_monaco.Uid})");
-            }
-#endif
+            if (_htmlViewContainer != null)
+                _htmlViewContainer.Update();
 
             if (MaximiseRequest && _externalDiv != null)
             {
@@ -201,9 +183,9 @@ namespace Gumknix
             _addressTextBox.Text = Address;
 
             string IFrameString = $"""
-                <iframe src="{Address}" style="border: none; width: 100%; height: 100%;" allow="microphone; xr; xr-spatial-tracking"></iframe>
+                <iframe src="{Address}" style="border: none; width: 100%; height: 100%; overflow: hidden;" allow="microphone; xr; xr-spatial-tracking"></iframe>
                 """;
-            _containerHTMLEmbed.SetInnerHTML(IFrameString);
+            _htmlViewContainer.SetInnerHtml(IFrameString);
             _externalDiv = null;
         }
 
@@ -214,7 +196,7 @@ namespace Gumknix
             if (_externalDiv != null && !GumknixInstance.EmbeddedMode.Animating)
                 _externalDiv.Style.SetProperty("display", "none");
 
-            _containerHTMLEmbed?.Remove();
+            _htmlViewContainer?.Remove();
 #endif
             base.Close();
         }
