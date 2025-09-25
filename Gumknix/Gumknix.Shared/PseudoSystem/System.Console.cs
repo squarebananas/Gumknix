@@ -212,20 +212,21 @@ namespace PseudoSystem
 
                 if (character == (int)ConsoleKey.Enter)
                 {
-                    CursorLeft = 0;
-                    CursorTop++;
+                    NextLine();
                     return lineEntered;
                 }
 
                 lineEntered += character;
+
+                int wrappedBufferY = (CursorTop + BufferLineZero) % BufferHeight;
 
                 if (character == (int)ConsoleKey.Backspace)
                 {
                     CursorLeft--;
                     if (CursorLeft >= startCursorLeft)
                     {
-                        ConsoleGridCell cell = ConsoleGridCells[CursorLeft][CursorTop];
-                        ConsoleGridCells[CursorLeft][CursorTop] = new()
+                        ConsoleGridCell cell = ConsoleGridCells[CursorLeft][wrappedBufferY];
+                        ConsoleGridCells[CursorLeft][wrappedBufferY] = new()
                         {
                             Character = '\0',
                             ForegroundColor = cell.ForegroundColor,
@@ -239,7 +240,7 @@ namespace PseudoSystem
                 }
                 else
                 {
-                    ConsoleGridCells[CursorLeft][CursorTop] = new()
+                    ConsoleGridCells[CursorLeft][wrappedBufferY] = new()
                     {
                         Character = character,
                         ForegroundColor = ConsoleColorToColor(ForegroundColor),
@@ -248,10 +249,7 @@ namespace PseudoSystem
 
                     CursorLeft++;
                     if (CursorLeft >= BufferWidth)
-                    {
-                        CursorLeft = 0;
-                        CursorTop++;
-                    }
+                        NextLine();
                 }
             }
         }
@@ -318,6 +316,9 @@ namespace PseudoSystem
 
         public ConsoleGridCell[][] ConsoleGridCells { get; private set; }
 
+        public int BufferLineZero { get; private set; }
+        public int TotalLinesWritten { get; private set; }
+
         public void UpdateGridCells()
         {
             if (outMemoryStream.Position >= 1)
@@ -333,8 +334,7 @@ namespace PseudoSystem
 
                     if (character == '\n')
                     {
-                        CursorLeft = 0;
-                        CursorTop++;
+                        NextLine();
                         continue;
                     }
                     if (character == '\r')
@@ -343,7 +343,8 @@ namespace PseudoSystem
                         continue;
                     }
 
-                    ConsoleGridCells[CursorLeft][CursorTop] = new()
+                    int wrappedBufferY = (CursorTop + BufferLineZero) % BufferHeight;
+                    ConsoleGridCells[CursorLeft][wrappedBufferY] = new()
                     {
                         Character = character,
                         ForegroundColor = ConsoleColorToColor(ForegroundColor),
@@ -352,13 +353,7 @@ namespace PseudoSystem
 
                     CursorLeft++;
                     if (CursorLeft >= BufferWidth)
-                    {
-                        CursorLeft = 0;
-                        CursorTop++;
-                        //if (CursorTop >= BufferHeight)
-                        //    CursorTop = 0;
-                    }
-
+                        NextLine();
                 }
 
                 outMemoryStream.SetLength(0);
@@ -368,6 +363,16 @@ namespace PseudoSystem
         public void AddKeyPresses(List<ConsoleKeyInfo> pressedKeys)
         {
             consoleKeyBuffer.AddRange(pressedKeys);
+        }
+
+        public void NextLine()
+        {
+            CursorLeft = 0;
+            if (CursorTop < (WindowHeight - 1))
+                CursorTop++;
+            else
+                BufferLineZero++;
+            TotalLinesWritten++;
         }
 
         ConsoleGridCell[][] CreateGrid(int width, int height)

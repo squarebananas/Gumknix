@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Gum.Forms.Controls;
 using Gum.Wireframe;
 using MonoGameGum.GueDeriving;
 using RenderingLibrary.Graphics;
@@ -21,8 +22,14 @@ namespace Gumknix
 
         private Console console = new();
 
+        private Point cellSize => new(12, console.CursorSize + 0);
+
+        Vector2 lastWindowSize;
+
         private RenderTarget2D renderTarget;
         private RenderTargetBinding[] lastTargetBindings;
+        private Sprite sprite;
+        private GraphicalUiElement spriteGue;
 
         private ContentManager contentManager;
         private SpriteBatch spriteBatch;
@@ -37,9 +44,11 @@ namespace Gumknix
         KeyboardState lastKeyboardState;
         List<Keys> keysUnreleasedSinceComplete;
 
+        ScrollBar scrollBar;
+
         public AppletConsole(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
-            base.Initialize(DefaultTitle, DefaultIcon);
+            base.Initialize(DefaultTitle, DefaultIcon, width: 900, height: 600);
 
             if (args?.Length >= 1)
             {
@@ -61,6 +70,7 @@ namespace Gumknix
                 bool alt = keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
                 bool control = keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
                 keyBuffer.Add(new ConsoleKeyInfo(e.Character, (ConsoleKey)e.Key, shift, alt, control));
+                scrollBar.Value = scrollBar.Maximum;
             };
 
             contentManager = new ContentManager(GumknixInstance.GameServiceContainer, "Content");
@@ -68,28 +78,23 @@ namespace Gumknix
             spriteBatch = new SpriteBatch(graphicsDevice);
             spriteFont = contentManager.Load<SpriteFont>("Font1");
 
-            renderTarget = new RenderTarget2D(graphicsDevice, 800, 600 - 32);
-            whitePixel = new Texture2D(graphicsDevice, 1, 1);
-            whitePixel.SetData([Color.White]);
-
-            Window.Visual.Height = 600;
-
             ColoredRectangleRuntime background = new();
             background.Color = Color.Black;
             background.Dock(Dock.Fill);
             background.Anchor(Anchor.TopLeft);
             Window.Visual.Children.Insert(1, background);
 
-            Sprite sprite = new(renderTarget);
-            GraphicalUiElement spriteGue = new(sprite, null);
-            spriteGue.X = 3;
-            spriteGue.Y = 32;
-            sprite.Width = spriteGue.Width = renderTarget.Width;
-            spriteGue.WidthUnits = Gum.DataTypes.DimensionUnitType.Absolute;
-            sprite.Height = spriteGue.Height = renderTarget.Height;
-            spriteGue.HeightUnits = Gum.DataTypes.DimensionUnitType.Absolute;
-            sprite.SourceRectangle = new System.Drawing.Rectangle(0, 0, renderTarget.Width, renderTarget.Height);
-            Window.Visual.Children.Add(spriteGue);
+            whitePixel = new Texture2D(graphicsDevice, 1, 1);
+            whitePixel.SetData([Color.White]);
+
+            scrollBar = new();
+            scrollBar.Dock(Dock.FillVertically);
+            scrollBar.Anchor(Anchor.TopRight);
+            scrollBar.Height -= TitleBarHeight;
+            scrollBar.Maximum = 0;
+            MainStackPanel.AddChild(scrollBar);
+
+            WindowSizeChanged();
         }
 
         public void StartTask(Func<Task> task)
@@ -116,32 +121,92 @@ namespace Gumknix
             lastKeyboardState = keyboardState;
             keyboardState = Keyboard.GetState();
 
-            if ((runningConsoleTask?.IsCompleted == true) && (keysUnreleasedSinceComplete != null))
-            {
-                for (int i = 0; i < keysUnreleasedSinceComplete.Count; i++)
-                {
-                    if (lastKeyboardState.IsKeyUp(keysUnreleasedSinceComplete[i]))
-                    {
-                        keysUnreleasedSinceComplete.RemoveAt(i);
-                        i--;
-                    }
-                }
+            if ((Window.ActualWidth != lastWindowSize.X) ||
+                (Window.ActualHeight != lastWindowSize.Y))
+                WindowSizeChanged();
 
-                if (keyboardState.GetPressedKeyCount() >= 1)
+            if (console.TotalLinesWritten >= console.WindowHeight)
+            {
+                int lastMaximum = (int)scrollBar.Maximum;
+                scrollBar.Maximum = Math.Min(console.TotalLinesWritten + 1, console.BufferHeight) - console.WindowHeight;
+                if ((scrollBar.IsEnabled == false) || (scrollBar.Value == lastMaximum))
+                    scrollBar.Value = scrollBar.Maximum;
+                scrollBar.IsEnabled = true;
+            }
+            else
+            {
+                scrollBar.IsEnabled = false;
+                scrollBar.Value = 0;
+                scrollBar.Maximum = 0;
+            }
+
+            if ((runningConsoleTask?.IsCompleted == true) && (keysUnreleasedSinceComplete != null))
+                CloseOnKeyPress();
+
+            base.Update();
+        }
+
+        private void WindowSizeChanged()
+        {
+            int maxX = (int)((Window.Visual.GetAbsoluteWidth() - 6 - scrollBar.ActualWidth) / cellSize.X);
+            int maxY = (int)((Window.Visual.GetAbsoluteHeight() - TitleBarHeight) / cellSize.Y);
+
+            int pixelWidth = maxX * cellSize.X;
+            int pixelHeight = maxY * cellSize.Y;
+
+            bool changed = false;
+            if (renderTarget == null ||
+                renderTarget.Width != pixelWidth ||
+                renderTarget.Height != pixelHeight)
+                changed = true;
+
+            if (!changed)
+                return;
+
+            console.WindowWidth = Math.Clamp(maxX, 1, console.BufferWidth);
+            console.WindowHeight = Math.Clamp(maxY, 1, console.BufferHeight);
+
+            renderTarget?.Dispose();
+            renderTarget = new RenderTarget2D(spriteBatch.GraphicsDevice, pixelWidth, pixelHeight);
+
+            sprite ??= new(null);
+            sprite.Texture = renderTarget;
+            sprite.SourceRectangle = new(0, 0, renderTarget.Width, renderTarget.Height);
+            sprite.Width = renderTarget.Width;
+            sprite.Height = renderTarget.Height;
+
+            spriteGue ??= new(sprite, null);
+            spriteGue.X = 3;
+            spriteGue.Y = TitleBarHeight;
+            spriteGue.Width = renderTarget.Width;
+            spriteGue.WidthUnits = Gum.DataTypes.DimensionUnitType.Absolute;
+            spriteGue.Height = renderTarget.Height;
+            spriteGue.HeightUnits = Gum.DataTypes.DimensionUnitType.Absolute;
+
+            if (Window.Visual.Children.Contains(spriteGue) == false)
+                Window.Visual.Children.Add(spriteGue);
+
+            lastWindowSize = new Vector2(Window.ActualWidth, Window.ActualHeight);
+        }
+
+        private void CloseOnKeyPress()
+        {
+            for (int i = keysUnreleasedSinceComplete.Count - 1; i >= 0; i--)
+                if (lastKeyboardState.IsKeyUp(keysUnreleasedSinceComplete[i]))
+                    keysUnreleasedSinceComplete.RemoveAt(i);
+
+            if (keyboardState.GetPressedKeyCount() >= 1)
+            {
+                Keys[] pressedKeys = keyboardState.GetPressedKeys();
+                for (int i = 0; i < pressedKeys.Length; i++)
                 {
-                    Keys[] pressedKeys = keyboardState.GetPressedKeys();
-                    for (int i = 0; i < pressedKeys.Length; i++)
+                    if (keysUnreleasedSinceComplete.Contains(pressedKeys[i]) == false)
                     {
-                        if (keysUnreleasedSinceComplete.Contains(pressedKeys[i]) == false)
-                        {
-                            CloseRequest = true;
-                            break;
-                        }
+                        CloseRequest = true;
+                        break;
                     }
                 }
             }
-
-            base.Update();
         }
 
         public override void Draw()
@@ -158,16 +223,14 @@ namespace Gumknix
             {
                 for (int windowY = console.WindowTop; windowY < (console.WindowTop + console.WindowHeight); windowY++)
                 {
-                    Console.ConsoleGridCell cell = console.ConsoleGridCells[windowX][windowY];
+                    int scrollBarAdjust = (int)Math.Max(0, scrollBar.Maximum - scrollBar.Value);
+                    int wrappedBufferY = (windowY - scrollBarAdjust + console.BufferLineZero) % console.BufferHeight;
+                    Console.ConsoleGridCell cell = console.ConsoleGridCells[windowX][wrappedBufferY];
 
-                    Point size = new(12, console.CursorSize + 0);
-                    Point position = new((windowX - console.WindowLeft) * size.X,
-                        (windowY - console.WindowTop) * size.Y);
+                    Point position = new((windowX - console.WindowLeft) * cellSize.X,
+                        (windowY - console.WindowTop) * cellSize.Y);
 
-                    //position += new Point((int)Window.AbsoluteLeft + 5, (int)Window.AbsoluteTop + 30);
-                    //position += new Point((int)Window.X + 5, (int)Window.Y + 30);
-
-                    spriteBatch.Draw(whitePixel, new Rectangle(position.X, position.Y, size.X, size.Y), cell.BackgroundColor.ToXNA());
+                    spriteBatch.Draw(whitePixel, new Rectangle(position.X, position.Y, cellSize.X, cellSize.Y), cell.BackgroundColor.ToXNA());
                     if (cell.Character != '\0')
                         spriteBatch.DrawString(spriteFont, cell.Character.ToString(), position.ToVector2(), cell.ForegroundColor.ToXNA());
                 }

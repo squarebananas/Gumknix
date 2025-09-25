@@ -327,7 +327,7 @@ namespace Gumknix
             Window.Y = 0;
             Window.Width = 0;
             Window.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
-            Window.Height = -48;
+            Window.Height = -GumknixInstance.TaskBar.Background.Height;
             Window.Visual.HeightUnits = DimensionUnitType.RelativeToParent;
             MaximiseRequest = false;
         }
