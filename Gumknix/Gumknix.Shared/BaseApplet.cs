@@ -28,6 +28,8 @@ namespace Gumknix
         public Gum.Forms.Window Window { get; private set; }
         public StackPanel MainStackPanel { get; private set; }
 
+        public int TitleBarHeight { get; private set; }
+
         private Panel _titleBarPanel;
         private ColoredRectangleRuntime _titleBarColoredRectangle;
         private TextRuntime _titleBarIcon;
@@ -81,8 +83,10 @@ namespace Gumknix
             MainStackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             Window.AddChild(MainStackPanel);
 
+            TitleBarHeight = 32;
+
             _titleBarPanel = new();
-            _titleBarPanel.Visual.Height = 32;
+            _titleBarPanel.Visual.Height = TitleBarHeight;
             _titleBarPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
             _titleBarPanel.Visual.Dock(Dock.FillHorizontally);
             MainStackPanel.AddChild(_titleBarPanel);
@@ -108,9 +112,9 @@ namespace Gumknix
             _titleBarPanel.Visual.AddChild(_titleBarLabel);
 
             _titleBarMinimize = new();
-            _titleBarMinimize.Visual.Width = 32;
+            _titleBarMinimize.Visual.Width = TitleBarHeight;
             _titleBarMinimize.Visual.WidthUnits = DimensionUnitType.Absolute;
-            _titleBarMinimize.Visual.Height = 32;
+            _titleBarMinimize.Visual.Height = TitleBarHeight;
             _titleBarMinimize.Visual.HeightUnits = DimensionUnitType.Absolute;
             _titleBarMinimize.Text = "-";
             _titleBarMinimize.Visual.Anchor(Anchor.Right);
@@ -121,9 +125,9 @@ namespace Gumknix
             if (resizeMode == ResizeMode.CanResize)
             {
                 _titleBarMaximise = new();
-                _titleBarMaximise.Visual.Width = 32;
+                _titleBarMaximise.Visual.Width = TitleBarHeight;
                 _titleBarMaximise.Visual.WidthUnits = DimensionUnitType.Absolute;
-                _titleBarMaximise.Visual.Height = 32;
+                _titleBarMaximise.Visual.Height = TitleBarHeight;
                 _titleBarMaximise.Visual.HeightUnits = DimensionUnitType.Absolute;
                 _titleBarMaximise.Text = "[]";
                 _titleBarMaximise.Visual.Anchor(Anchor.Right);
@@ -139,9 +143,9 @@ namespace Gumknix
             }
 
             _titleBarClose = new();
-            _titleBarClose.Visual.Width = 32;
+            _titleBarClose.Visual.Width = TitleBarHeight;
             _titleBarClose.Visual.WidthUnits = DimensionUnitType.Absolute;
-            _titleBarClose.Visual.Height = 32;
+            _titleBarClose.Visual.Height = TitleBarHeight;
             _titleBarClose.Visual.HeightUnits = DimensionUnitType.Absolute;
             _titleBarClose.Text = "X";
             _titleBarClose.Visual.Anchor(Anchor.Right);

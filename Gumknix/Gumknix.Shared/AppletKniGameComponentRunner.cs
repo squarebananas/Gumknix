@@ -39,7 +39,7 @@ namespace Gumknix
             graphicsDevice = (GumknixInstance.GameServiceContainer.GetService(
                 typeof(IGraphicsDeviceService)) as IGraphicsDeviceService).GraphicsDevice;
             spriteBatch = new SpriteBatch(graphicsDevice);
-            renderTarget = new RenderTarget2D(graphicsDevice, 800, 600 - 32);
+            renderTarget = new RenderTarget2D(graphicsDevice, 800, 600 - TitleBarHeight);
             whitePixel = new Texture2D(graphicsDevice, 1, 1);
             whitePixel.SetData([Color.White]);
 

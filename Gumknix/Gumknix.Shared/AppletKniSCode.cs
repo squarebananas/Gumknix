@@ -30,8 +30,6 @@ using MetadataReferenceService.Abstractions.Types;
 using MetadataReferenceService.BlazorWasm;
 
 #if BLAZORGL
-using nkast.Wasm.Canvas;
-using nkast.Wasm.Dom;
 using nkast.Wasm.FileSystem;
 #endif
 

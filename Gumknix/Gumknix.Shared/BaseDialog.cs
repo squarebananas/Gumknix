@@ -23,6 +23,8 @@ namespace Gumknix
         public Window Window { get; private set; }
         protected StackPanel MainStackPanel { get; set; }
 
+        public int TitleBarHeight { get; private set; }
+
         private Panel _titleBarPanel;
         private ColoredRectangleRuntime _titleBarColoredRectangle;
         private TextRuntime _titleBarIcon;
@@ -57,8 +59,10 @@ namespace Gumknix
             MainStackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             Window.AddChild(MainStackPanel);
 
+            TitleBarHeight = 32;
+
             _titleBarPanel = new();
-            _titleBarPanel.Visual.Height = 32;
+            _titleBarPanel.Visual.Height = TitleBarHeight;
             _titleBarPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
             _titleBarPanel.Visual.Dock(Dock.FillHorizontally);
             MainStackPanel.AddChild(_titleBarPanel);
@@ -84,9 +88,9 @@ namespace Gumknix
             _titleBarPanel.Visual.AddChild(_titleBarLabel);
 
             _titleBarClose = new Button();
-            _titleBarClose.Visual.Width = 32;
+            _titleBarClose.Visual.Width = TitleBarHeight;
             _titleBarClose.Visual.WidthUnits = DimensionUnitType.Absolute;
-            _titleBarClose.Visual.Height = 32;
+            _titleBarClose.Visual.Height = TitleBarHeight;
             _titleBarClose.Visual.HeightUnits = DimensionUnitType.Absolute;
             _titleBarClose.Text = "X";
             _titleBarClose.Visual.Anchor(Anchor.Right);

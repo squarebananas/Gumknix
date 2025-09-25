@@ -44,7 +44,7 @@ namespace Gumknix
             _textBoxScrollViewer = new();
             _textBoxScrollViewer.Visual.Dock(Dock.Fill);
             _textBoxScrollViewer.Visual.Anchor(Anchor.TopLeft);
-            _textBoxScrollViewer.Visual.Height -= 32;
+            _textBoxScrollViewer.Visual.Height -= TitleBarHeight;
             _textBoxScrollViewer.Visual.ClipsChildren = true;
             MainStackPanel.AddChild(_textBoxScrollViewer);
 

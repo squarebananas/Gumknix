@@ -40,7 +40,7 @@ namespace Gumknix
             _navigationBar.Orientation = Orientation.Horizontal;
             _navigationBar.Visual.Dock(Dock.FillHorizontally);
             _navigationBar.Visual.Anchor(Anchor.TopLeft);
-            _navigationBar.Visual.Height = 32;
+            _navigationBar.Visual.Height = TitleBarHeight;
             _navigationBar.Visual.HeightUnits = DimensionUnitType.Absolute;
             _navigationBar.Visual.StackSpacing = 0;
             _navigationBar.Visual.WrapsChildren = true;
