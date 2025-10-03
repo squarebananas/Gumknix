@@ -28,3 +28,11 @@
 /processorParam:TextureFormat=Color
 /build:FluentSymbolsFilled_0.png
 
+#begin FontCascadia.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/processorParam:Smoothing=Normal
+/build:FontCascadia.spritefont
+

@@ -22,7 +22,7 @@ namespace Gumknix
 
         private Console console = new();
 
-        private Point cellSize => new(12, console.CursorSize + 0);
+        private Point cellSize => new(11, console.CursorSize + 0);
 
         Vector2 lastWindowSize;
 
@@ -76,7 +76,7 @@ namespace Gumknix
             contentManager = new ContentManager(GumknixInstance.GameServiceContainer, "Content");
 
             spriteBatch = new SpriteBatch(graphicsDevice);
-            spriteFont = contentManager.Load<SpriteFont>("Font1");
+            spriteFont = contentManager.Load<SpriteFont>("FontCascadia");
 
             ColoredRectangleRuntime background = new();
             background.Color = Color.Black;
