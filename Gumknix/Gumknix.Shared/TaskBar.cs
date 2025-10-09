@@ -20,6 +20,8 @@ namespace Gumknix
 
         public Panel Panel { get; init; }
 
+        public int Height { get; private set; }
+
         public ColoredRectangleRuntime Background { get; init; }
         private StackPanel _stackPanel;
         private TaskBarStartButton _startButton;
@@ -44,6 +46,8 @@ namespace Gumknix
             Panel.Visual.Anchor(Anchor.TopLeft);
             GumknixInstance.GumRenderables.Add(Panel.Visual);
 
+            Height = 48;
+
             Background = new()
             {
                 Name = "Background",
@@ -56,7 +60,7 @@ namespace Gumknix
                 Y = 0,
                 Width = 0,
                 WidthUnits = DimensionUnitType.RelativeToParent,
-                Height = 48,
+                Height = Height,
                 HeightUnits = DimensionUnitType.Absolute
             };
             Panel.Visual.AddChild(Background);
@@ -65,7 +69,7 @@ namespace Gumknix
             _stackPanel.Orientation = Orientation.Horizontal;
             _stackPanel.Spacing = 10;
             _stackPanel.Visual.Anchor(Anchor.Bottom);
-            _stackPanel.Visual.Height = 48f;
+            _stackPanel.Visual.Height = Height;
             _stackPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
             _stackPanel.Visual.StackSpacing = 10;
             _stackPanel.Dock(Dock.FillHorizontally);
