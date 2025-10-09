@@ -253,8 +253,6 @@ namespace Gumknix
                 if (!keepOpen)
                     _contextMenu.CloseMenu();
             }
-            if (_contextMenu?.IsClosed == true)
-                _contextMenu = null;
 
             if ((_renameTextBox != null) && !_renameTextBoxActivated &&
                 GumService.Default.Cursor.PrimaryDown == false)
@@ -316,12 +314,21 @@ namespace Gumknix
                     _draggingFileDetails.Visual.Visible = transferType != FileSystemItem.TransferType.None;
                 }
 
-                if (GumService.Default.Cursor.PrimaryDown == false)
+                bool endDrag = false;
+                if ((_systemVisual.GumknixInstance.GameActive == false) ||
+                    GumService.Default.Keyboard.KeyDown(Keys.Escape))
+                    endDrag = true;
+
+                if (GumService.Default.Cursor.PrimaryDown == false && !endDrag)
                 {
+                    endDrag = true;
                     if (transferType != FileSystemItem.TransferType.None)
                         _gumknix.FilesDropped([_draggingFileItem],
                             GumService.Default.Keyboard.IsCtrlDown, GumService.Default.Keyboard.IsShiftDown);
+                }
 
+                if (endDrag)
+                {
                     _draggingFileItem = null;
                     if (_draggingFileIcon != null)
                     {
@@ -332,6 +339,9 @@ namespace Gumknix
                     }
                 }
             }
+
+            if (_contextMenu?.IsClosed == true)
+                _contextMenu = null;
         }
 
         private void AddTreeItem(FileSystemItem fileSystemItem)

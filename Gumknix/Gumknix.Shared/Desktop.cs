@@ -271,8 +271,6 @@ namespace Gumknix
                 if (!keepOpen)
                     _contextMenu.CloseMenu();
             }
-            if (_contextMenu?.IsClosed == true)
-                _contextMenu = null;
 
             if ((_renameTextBox != null) && !_renameTextBoxActivated &&
                GumService.Default.Cursor.PrimaryDown == false)
@@ -334,8 +332,14 @@ namespace Gumknix
                     _draggingFileDetails.Visual.Visible = transferType != FileSystemItem.TransferType.None;
                 }
 
-                if (GumService.Default.Cursor.PrimaryDown == false)
+                bool endDrag = false;
+                if ((GumknixInstance.GameActive == false) ||
+                    GumService.Default.Keyboard.KeyDown(Keys.Escape))
+                    endDrag = true;
+
+                if (GumService.Default.Cursor.PrimaryDown == false && !endDrag)
                 {
+                    endDrag = true;
                     object objectUnderCursor = GumknixInstance.ObjectUnderCursor();
                     if ((objectUnderCursor == this) && (CursorOverIcon == null) && (transferType == FileSystemItem.TransferType.None))
                     {
@@ -358,7 +362,10 @@ namespace Gumknix
                             GumknixInstance.FilesDropped([_draggingIcon.FileSystemItem],
                                 GumService.Default.Keyboard.IsCtrlDown, GumService.Default.Keyboard.IsShiftDown);
                     }
+                }
 
+                if (endDrag)
+                {
                     _draggingIcon = null;
                     if (_draggingIconLogo != null)
                     {
@@ -369,6 +376,9 @@ namespace Gumknix
                     }
                 }
             }
+
+            if (_contextMenu?.IsClosed == true)
+                _contextMenu = null;
         }
 
         public void AddIcon(DesktopIcon icon, Point? gridSlot = null)
