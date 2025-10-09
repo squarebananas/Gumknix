@@ -47,7 +47,7 @@ namespace Gumknix
 
         protected override void Update(GameTime gameTime)
         {
-            Gumknix.UpdatePreGum(gameTime);
+            Gumknix.UpdatePreGum(gameTime, IsActive);
 
             Gum.Wireframe.GraphicalUiElement.CanvasWidth = Window.ClientBounds.Width;
             Gum.Wireframe.GraphicalUiElement.CanvasHeight = Window.ClientBounds.Height;

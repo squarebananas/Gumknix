@@ -18,7 +18,8 @@ namespace Gumknix
     public class Gumknix
     {
         public GameServiceContainer GameServiceContainer { get; init; }
-        public GameTime GameTime { get; set; }
+        public GameTime GameTime { get; private set; }
+        public bool GameActive { get; private set; }
 
         public System.Collections.ObjectModel.ObservableCollection<IRenderableIpso> GumRenderables { get; private set; }
 
@@ -84,9 +85,10 @@ namespace Gumknix
             EmbeddedMode = new(this);
         }
 
-        public void UpdatePreGum(GameTime gameTime)
+        public void UpdatePreGum(GameTime gameTime, bool gameActive)
         {
             GameTime = gameTime;
+            GameActive = gameActive;
 
             EmbeddedMode.Update(gameTime);
 
