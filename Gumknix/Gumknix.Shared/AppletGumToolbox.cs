@@ -176,7 +176,7 @@ namespace Gumknix
 
             splitterLeft = new();
             splitterLeft.Dock(Dock.FillVertically);
-            splitterLeft.Width = 5;
+            splitterLeft.Width = 2;
             _stackPanel.AddChild(splitterLeft);
 
             NewWorkSpacePanel();
@@ -184,7 +184,7 @@ namespace Gumknix
             splitterRight = new();
             splitterRight.Dock(Dock.FillVertically);
             splitterRight.X = 20;
-            splitterRight.Width = 5;
+            splitterRight.Width = 2;
             _stackPanel.AddChild(splitterRight);
 
             _elementsPropertiesStackPanel = new();
@@ -235,7 +235,7 @@ namespace Gumknix
 
             Splitter splitter3 = new();
             splitter3.Dock(Dock.FillHorizontally);
-            splitter3.Height = 5;
+            splitter3.Height = 2;
             _elementsPropertiesStackPanel.AddChild(splitter3);
 
             _propertiesPanel = new();

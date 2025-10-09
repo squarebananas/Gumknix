@@ -139,7 +139,7 @@ namespace Gumknix
 
             _splitter = new Splitter();
             _splitter.Dock(Dock.FillVertically);
-            _splitter.Width = 5;
+            _splitter.Width = 2;
             _stackPanel.AddChild(_splitter);
 
             _folderListBox = new();
