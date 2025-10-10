@@ -73,6 +73,7 @@ namespace Gumknix
         private float _propertiesListBoxTargetHeight;
 
         private Dictionary<string, string> sourceFiles = [];
+        private string selectedSourceFilePath;
 
         private static BlazorWasmMetadataReferenceService _referenceService;
 
@@ -81,6 +82,10 @@ namespace Gumknix
         private Assembly _loadedAssembly;
 
         public string TempForceLoad; // todo replace
+
+        RectangleRuntime rectangle;
+
+        string generatedCode;
 
         public AppletKniSCode(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
@@ -199,6 +204,13 @@ namespace Gumknix
             menuItemView.Items.Add(menuItemViewWordWrap);
             //menuItemViewWordWrap.Clicked += (s, e) =>
             //{ _textBox.TextWrapping = (_textBox.TextWrapping == TextWrapping.NoWrap) ? TextWrapping.Wrap : TextWrapping.NoWrap; };
+
+            MenuItem menuItemViewGenerated = new();
+            menuItemViewGenerated.Header = "Generated .cs";
+            menuItemViewGenerated.Visual.Width = 220;
+            menuItemViewGenerated.Visual.WidthUnits = DimensionUnitType.Absolute;
+            menuItemView.Items.Add(menuItemViewGenerated);
+            menuItemViewGenerated.Clicked += (s, e) => gumknix.StartApplet(typeof(AppletKniopad), [generatedCode]);
 
             MenuItem menuItemTemp = new();
             menuItemTemp.Header = "Reflect";
@@ -346,13 +358,21 @@ namespace Gumknix
             _solutionFilesListBox.ListBoxItemFormsType = typeof(SolutionFileListBoxItem);
             _solutionFilesListBox.ItemClicked += async (s, e) =>
             {
+                sourceFiles[selectedSourceFilePath] = _monaco.GetText();
+
                 FileSystemItem fileItem = _solutionFilesListBox.SelectedObject as FileSystemItem;
-                FileSystemFileHandle fileSystemFileHandle = fileItem.Handle as FileSystemFileHandle;
-                nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
-                string text = await file.Text();
+                selectedSourceFilePath = fileItem.Path;
+                if (sourceFiles.ContainsKey(selectedSourceFilePath) == false)
+                {
+                    FileSystemFileHandle fileSystemFileHandle = fileItem.Handle as FileSystemFileHandle;
+                    nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
+                    string text = await file.Text();
+                    sourceFiles[selectedSourceFilePath] = text;
+                }
+
                 string languageId = GetLanguageNameFromFileExtension(fileItem.Extension);
                 _monaco.SetLanguage(languageId);
-                _monaco.SetText(text);
+                _monaco.SetText(sourceFiles[selectedSourceFilePath]);
             };
             _innerPanelRight.AddChild(_solutionFilesListBox);
 
@@ -575,18 +595,24 @@ namespace Gumknix
 
             string sourceCode = _monaco.GetText();
             if (sourceFiles.Count == 0)
-                sourceFiles["Program.cs"] = sourceCode;
+                selectedSourceFilePath = "Program.cs";
+            sourceFiles[selectedSourceFilePath] = sourceCode;
 
             CSharpParseOptions cSharpParseOptions = CSharpParseOptions.Default;
             cSharpParseOptions.WithLanguageVersion(LanguageVersion.LatestMajor);
             cSharpParseOptions.WithPreprocessorSymbols(preprocessorSymbols);
 
             List<SyntaxTree> syntaxTrees = [];
-            for (int i=0; i < sourceFiles.Count; i++)
+            for (int i = 0; i < sourceFiles.Count; i++)
             {
-                string fileSourceCode = sourceFiles.Values.ElementAt(i);
-                SyntaxTree fileSyntaxTree = ParseSource(fileSourceCode, cSharpParseOptions);
-                syntaxTrees.Add(fileSyntaxTree);
+                KeyValuePair<string, string> keyValuePair = sourceFiles.ElementAt(i);
+                if (keyValuePair.Key.EndsWith(".cs"))
+                {
+                    SyntaxTree fileSyntaxTree = ParseSource(keyValuePair.Value, cSharpParseOptions);
+                    syntaxTrees.Add(fileSyntaxTree);
+
+                    generatedCode = fileSyntaxTree.ToString();
+                }
             }
 
             HashSet<string> assembliesRequired = [];
@@ -922,7 +948,7 @@ namespace Gumknix
                                             FileSystemFileHandle fileSystemFileHandle = projectChildFileItem.Handle as FileSystemFileHandle;
                                             nkast.Wasm.File.File file = await fileSystemFileHandle.GetFile();
                                             string text = await file.Text();
-                                            sourceFiles.Add(projectChildFileItem.Name, text);
+                                            sourceFiles.Add(projectChildFileItem.Path, text);
                                         }
 
                                         _outputPanel.Text = projectFile.Log.ToString();
@@ -930,9 +956,10 @@ namespace Gumknix
                                 }
                                 else if (fileItem.Extension == ".cs")
                                 {
-                                    sourceFiles.Add(fileItem.Name, text);
+                                    sourceFiles.Add(fileItem.Path, text);
                                 }
 
+                                selectedSourceFilePath = fileItem.Path;
                                 string languageId = GetLanguageNameFromFileExtension(fileItem.Extension);
                                 _monaco.SetLanguage(languageId);
                                 _monaco.SetText(text);
