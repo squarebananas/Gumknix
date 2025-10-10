@@ -43,7 +43,7 @@ namespace Gumknix
         public static readonly string DefaultIcon = "\uEE71";
 
 #if BLAZORGL
-        private ModuleMonaco _monaco;
+        private ModuleMonaco _monaco { get; set; }
 
         public ModuleMonaco.LanguageDefinition[] LanguageDefinitions { get; private set; }
 #endif
@@ -57,12 +57,20 @@ namespace Gumknix
 
         private StackPanel _innerPanel;
         private StackPanel _innerPanelLeft;
+        private Splitter _innerPanelSplitter;
         private StackPanel _innerPanelRight;
+        private float _innerPanelRightTargetWidth;
 
         private HTMLViewContainer _textEditorContainer;
+        private Splitter _textEditorSplitter;
         private ScrollViewer _outputPanelScrollViewer;
         private KniopadTextBox _outputPanel;
+        private float _outputPanelTargetHeight;
+
         private ListBox _solutionFilesListBox;
+        private Splitter _solutionFilesSplitter;
+        private ListBox _propertiesListBox;
+        private float _propertiesListBoxTargetHeight;
 
         private Dictionary<string, string> sourceFiles = [];
 
@@ -79,7 +87,10 @@ namespace Gumknix
             TempForceLoad = Microsoft.Xna.Framework.Audio.AudioChannels.Stereo.ToString() +
                 Microsoft.Xna.Framework.Media.VideoSoundtrackType.Dialog.ToString();
 
-            base.Initialize(DefaultTitle, DefaultIcon, 1500, 800, ResizeMode.NoResize);
+            base.Initialize(DefaultTitle, DefaultIcon, 1500, 800);
+
+            Window.Visual.MinWidth = 310;
+            Window.Visual.MinHeight = 310;
 
             _menu = new();
             MainStackPanel.Visual.AddChild(_menu.Visual);
@@ -200,12 +211,15 @@ namespace Gumknix
             _background.Color = new Color(32, 32, 32);
             _background.Dock(Dock.Fill);
             _background.Anchor(Anchor.TopLeft);
+            _background.Height = -(TitleBarHeight + _menu.ActualHeight);
+            _background.HeightUnits = DimensionUnitType.RelativeToParent;
             MainStackPanel.Visual.AddChild(_background);
 
             _stackPanel = new();
             _stackPanel.Orientation = Orientation.Vertical;
             _stackPanel.Visual.Dock(Dock.Fill);
             _stackPanel.Visual.Anchor(Anchor.TopLeft);
+            _stackPanel.Visual.HeightUnits = DimensionUnitType.RelativeToParent;
             _stackPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
             _background.AddChild(_stackPanel);
 
@@ -237,6 +251,8 @@ namespace Gumknix
             _innerPanel.Orientation = Orientation.Horizontal;
             _innerPanel.Visual.Dock(Dock.Fill);
             _innerPanel.Visual.Anchor(Anchor.TopLeft);
+            _innerPanel.Visual.Height = -_mainToolbar.ActualHeight;
+            _innerPanel.Visual.HeightUnits = DimensionUnitType.RelativeToParent;
             _innerPanel.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.LeftToRightStack;
             _stackPanel.AddChild(_innerPanel);
 
@@ -255,20 +271,27 @@ namespace Gumknix
             _textEditorContainer.Anchor(Anchor.TopLeft);
             _textEditorContainer.Height = 550;
             _textEditorContainer.HeightUnits = DimensionUnitType.Absolute;
-            _textEditorContainer.MinHeight = 200;
+            _textEditorContainer.MinHeight = 100;
             _innerPanelLeft.AddChild(_textEditorContainer);
 
-            Splitter splitter1 = new();
-            splitter1.Visual.Dock(Dock.FillHorizontally);
-            splitter1.Visual.Anchor(Anchor.TopLeft);
-            splitter1.Visual.Height = 5;
-            _innerPanelLeft.AddChild(splitter1);
+            _textEditorSplitter = new();
+            _textEditorSplitter.Visual.Dock(Dock.FillHorizontally);
+            _textEditorSplitter.Visual.Anchor(Anchor.TopLeft);
+            _textEditorSplitter.Visual.Height = 2;
+            _innerPanelLeft.AddChild(_textEditorSplitter);
+            _textEditorSplitter.Visual.Dragging += (s, e) =>
+            {
+                _outputPanelTargetHeight = MathF.Max(_outputPanelScrollViewer.ActualHeight, _outputPanelScrollViewer.Visual.MinHeight.Value);
+            };
+
+            _outputPanelTargetHeight = 200;
 
             _outputPanelScrollViewer = new();
             _outputPanelScrollViewer.Visual.Dock(Dock.Fill);
             _outputPanelScrollViewer.Visual.Anchor(Anchor.TopLeft);
-            _outputPanelScrollViewer.Visual.Height = 200;
+            _outputPanelScrollViewer.Visual.Height = _outputPanelTargetHeight;
             _outputPanelScrollViewer.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _outputPanelScrollViewer.Visual.MinHeight = 100;
             _outputPanelScrollViewer.Visual.ClipsChildren = true;
             _innerPanelLeft.AddChild(_outputPanelScrollViewer);
 
@@ -291,17 +314,24 @@ namespace Gumknix
             _outputPanelScrollViewer.AddChild(_outputPanel);
             _outputPanel.UpdateState();
 
-            Splitter splitter2 = new();
-            splitter2.Visual.Dock(Dock.FillVertically);
-            splitter2.Visual.Anchor(Anchor.TopLeft);
-            splitter2.Visual.Width = 5;
-            _innerPanel.AddChild(splitter2);
+            _innerPanelSplitter = new();
+            _innerPanelSplitter.Visual.Dock(Dock.FillVertically);
+            _innerPanelSplitter.Visual.Anchor(Anchor.TopLeft);
+            _innerPanelSplitter.Visual.Width = 2;
+            _innerPanelSplitter.Visual.WidthUnits = DimensionUnitType.Absolute;
+            _innerPanel.AddChild(_innerPanelSplitter);
+            _innerPanelSplitter.Visual.Dragging += (s, e) =>
+            {
+                _innerPanelRightTargetWidth = MathF.Max(_innerPanelRight.ActualWidth, _innerPanelRight.Visual.MinWidth.Value);
+            };
+
+            _innerPanelRightTargetWidth = 300;
 
             _innerPanelRight = new();
             _innerPanelRight.Orientation = Orientation.Vertical;
             _innerPanelRight.Visual.Dock(Dock.FillVertically);
             _innerPanelRight.Visual.Anchor(Anchor.TopLeft);
-            _innerPanelRight.Visual.Width = 300;
+            _innerPanelRight.Visual.Width = _innerPanelRightTargetWidth;
             _innerPanelRight.Visual.WidthUnits = DimensionUnitType.Absolute;
             _innerPanelRight.Visual.MinWidth = 150;
             _innerPanelRight.Visual.ChildrenLayout = Gum.Managers.ChildrenLayout.TopToBottomStack;
@@ -312,6 +342,7 @@ namespace Gumknix
             _solutionFilesListBox.Visual.Anchor(Anchor.TopLeft);
             _solutionFilesListBox.Visual.Height = 450;
             _solutionFilesListBox.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _solutionFilesListBox.Visual.MinHeight = 100;
             _solutionFilesListBox.ListBoxItemFormsType = typeof(SolutionFileListBoxItem);
             _solutionFilesListBox.ItemClicked += async (s, e) =>
             {
@@ -325,11 +356,26 @@ namespace Gumknix
             };
             _innerPanelRight.AddChild(_solutionFilesListBox);
 
-            Splitter splitter3 = new();
-            splitter3.Visual.Dock(Dock.FillHorizontally);
-            splitter3.Visual.Anchor(Anchor.TopLeft);
-            splitter3.Visual.Height = 5;
-            _innerPanelRight.AddChild(splitter3);
+            _solutionFilesSplitter = new();
+            _solutionFilesSplitter.Visual.Dock(Dock.FillHorizontally);
+            _solutionFilesSplitter.Visual.Anchor(Anchor.TopLeft);
+            _solutionFilesSplitter.Visual.Height = 2;
+            _solutionFilesSplitter.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _innerPanelRight.AddChild(_solutionFilesSplitter);
+            _solutionFilesSplitter.Visual.Dragging += (s, e) =>
+            {
+                _outputPanelTargetHeight = MathF.Max(_outputPanelScrollViewer.ActualHeight, _outputPanelScrollViewer.Visual.MinHeight.Value);
+            };
+
+            _propertiesListBoxTargetHeight = 250;
+
+            _propertiesListBox = new();
+            _propertiesListBox.Visual.Dock(Dock.FillHorizontally);
+            _propertiesListBox.Visual.Anchor(Anchor.TopLeft);
+            _propertiesListBox.Visual.Height = _propertiesListBoxTargetHeight;
+            _propertiesListBox.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _propertiesListBox.Visual.MinHeight = 100;
+            _innerPanelRight.AddChild(_propertiesListBox);
 
 #if BLAZORGL
             _monaco = ModuleMonaco.Create();
@@ -384,8 +430,71 @@ namespace Gumknix
 
         public override void Update()
         {
+            if (MathF.Abs(_innerPanel.ActualWidth -
+                (_innerPanelLeft.ActualWidth + _innerPanelRight.ActualWidth + _innerPanelSplitter.ActualWidth)) >= 0.1f)
+            {
+                float leftWidth = _innerPanel.ActualWidth - _innerPanelRightTargetWidth - _innerPanelSplitter.ActualWidth;
+                float rightWidth = _innerPanelRightTargetWidth;
+
+                if (_innerPanelLeft.Visual.MinWidth != null && leftWidth < _innerPanelLeft.Visual.MinWidth)
+                {
+                    leftWidth = (float)_innerPanelLeft.Visual.MinWidth;
+                    rightWidth = _innerPanel.ActualWidth - leftWidth - _innerPanelSplitter.ActualWidth;
+                }
+
+                _innerPanelLeft.Width = leftWidth;
+                _innerPanelRight.Width = rightWidth;
+            }
+
+            if (MathF.Abs(_innerPanelLeft.ActualHeight -
+                (_textEditorContainer.GetAbsoluteHeight() + _outputPanelScrollViewer.ActualHeight + _textEditorSplitter.ActualHeight)) >= 0.1f)
+            {
+                float topHeight = _innerPanelLeft.ActualHeight - _outputPanelTargetHeight - _textEditorSplitter.ActualHeight;
+                float bottomHeight = _outputPanelTargetHeight;
+
+                if (_textEditorContainer.MinHeight != null && topHeight < _textEditorContainer.MinHeight)
+                {
+                    topHeight = (float)_textEditorContainer.MinHeight;
+                    bottomHeight = _innerPanelLeft.ActualHeight - topHeight - _textEditorSplitter.ActualHeight;
+                }
+
+                _textEditorContainer.Height = topHeight;
+                _outputPanelScrollViewer.Height = bottomHeight;
+            }
+
             _outputPanel.Visual.Height = Math.Max(_outputPanelScrollViewer.ActualHeight - 15, _outputPanel.WrappedTextHeight);
             _outputPanel.Visual.HeightUnits = DimensionUnitType.Absolute;
+
+
+            if (MathF.Abs(_innerPanelRight.ActualHeight -
+                (_solutionFilesListBox.ActualHeight + _propertiesListBox.ActualHeight + _solutionFilesSplitter.ActualHeight)) >= 0.1f)
+            {
+                float topHeight = _innerPanelRight.ActualHeight - _propertiesListBoxTargetHeight - _solutionFilesSplitter.ActualHeight;
+                float bottomHeight = _propertiesListBoxTargetHeight;
+
+                if (_solutionFilesListBox.Visual.MinHeight != null && topHeight < _solutionFilesListBox.Visual.MinHeight)
+                {
+                    topHeight = (float)_solutionFilesListBox.Visual.MinHeight;
+                    bottomHeight = _innerPanelRight.ActualHeight - topHeight - _solutionFilesSplitter.ActualHeight;
+                }
+
+                _solutionFilesListBox.Visual.Height = topHeight;
+                _propertiesListBox.Height = bottomHeight;
+            }
+
+            //if (rectangle == null)
+            //{
+            //    rectangle = new();
+            //    rectangle.AddToRoot();
+            //}
+            //rectangle.Color = Color.Red;
+            //rectangle.Anchor(Anchor.TopLeft);
+            //rectangle.X = _innerPanel.AbsoluteLeft;
+            //rectangle.Y = _innerPanel.AbsoluteTop;
+            //rectangle.Width = _innerPanel.ActualWidth;
+            //rectangle.WidthUnits = DimensionUnitType.Absolute;
+            //rectangle.Height = _innerPanel.ActualHeight;
+            //rectangle.HeightUnits = DimensionUnitType.Absolute;
 
             base.Update();
         }
@@ -1151,76 +1260,6 @@ namespace Gumknix
             _textEditorContainer.Remove();
 #endif
             base.Close();
-        }
-
-        string TestClass2()
-        {
-            return $$$"""
-                using System;
-                using Microsoft.Xna.Framework;
-                using Microsoft.Xna.Framework.Graphics;
-                using Microsoft.Xna.Framework.Input;
-                using global::Gumknix;
-
-                public class TestKNIGameClass2
-                {
-
-                    public TestKNIGameClass2()
-                    {
-                    }
-
-                    public static Color GetColor()
-                    {
-                        return Color.Red;
-                    }
-                }
-                """;
-        }
-    }
-
-    public class SolutionFileListBoxItem : ListBoxItem
-    {
-        public TextRuntime Icon { get; private set; }
-
-        public SolutionFileListBoxItem(InteractiveGue gue) : base(gue)
-        {
-            TextRuntime text = Visual.GetGraphicalUiElementByName("TextInstance") as TextRuntime;
-            text.X = 30;
-            text.XOrigin = HorizontalAlignment.Left;
-            text.XUnits = GeneralUnitType.PixelsFromSmall;
-
-            Icon = new TextRuntime()
-            {
-                Font = "FluentSymbolSet",
-                FontSize = 48,
-                FontScale = 0.5f,
-                Text = "\uE651",
-                X = 3,
-                Y = 3,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                Width = -100,
-                WidthUnits = DimensionUnitType.RelativeToParent
-            };
-            Visual.AddChild(Icon);
-        }
-
-        public override void UpdateToObject(object obj)
-        {
-            FileSystemItem fileSystemItem = obj as FileSystemItem;
-            coreText.RawText = fileSystemItem.Name;
-            Icon.Text = fileSystemItem.Icon;
-
-            if (fileSystemItem.Extension == ".csproj" ||
-                fileSystemItem.Extension == ".projitems")
-            {
-                
-            }
-            else
-            {
-                (Visual.GetGraphicalUiElementByName("TextInstance") as TextRuntime).X += 24;
-                Icon.X += 24;
-            }
         }
     }
 }
