@@ -901,6 +901,13 @@ namespace Gumknix
 
             string sourceCode = newRoot.ToFullString();
 
+            if (sourceCode.Contains("Console.Read"))
+            {
+                ConsoleRewriter consoleReadRewriter = new();
+                SyntaxNode rewrittenRoot = consoleReadRewriter.Rewrite(newRoot);
+                sourceCode = rewrittenRoot.ToFullString();
+            }
+
             syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
             return syntaxTree;
         }
