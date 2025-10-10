@@ -44,7 +44,7 @@ namespace Gumknix
             Div tempDiv = Window.Current.Document.CreateElement<Div>("Div");
             tempDiv.InnerHTML =
                 $"""
-                <div id="HTMLViewContainer{id}" style="position: absolute; display: none; overflow: hidden;">
+                <div id="HTMLViewContainer{_id}" style="position: absolute; display: none; overflow: hidden;">
                 </div>
                 """;
             _htmlElement = tempDiv.FirstElementChild();
@@ -205,11 +205,11 @@ namespace Gumknix
 
         public void Remove()
         {
-            Div svgCutout = Window.Current.Document.GetElementById<Div>($"SvgCutout{_id}");
-            _body.RemoveChild(svgCutout);
-
             Div htmlElement = Window.Current.Document.GetElementById<Div>($"HTMLViewContainer{_id}");
             _body.RemoveChild(htmlElement);
+
+            Div svgCutout = Window.Current.Document.GetElementById<Div>($"SvgCutout{_id}");
+            _body.RemoveChild(svgCutout);
         }
     }
 }

@@ -23,10 +23,13 @@ namespace Gumknix
             {
                 BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
             });
+
             builder.Services.InjectClipboard();
             ClipboardImplementation.InjectedClipboard =
                 builder.Services.BuildServiceProvider().GetRequiredService<IClipboard>();
+
             NavigationManager = builder.Services.BuildServiceProvider().GetRequiredService<NavigationManager>();
+
             await builder.Build().RunAsync();
         }
 

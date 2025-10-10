@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using Microsoft.JSInterop;
 using nkast.Wasm.JSInterop;
+using JSObject = nkast.Wasm.JSInterop.JSObject;
 
 namespace Gumknix
 {
@@ -149,4 +151,32 @@ namespace Gumknix
                 handler(monaco, EventArgs.Empty);
         }
     }
+
+    public static partial class DynamicLoaderInterop
+    {
+        [JSImport("globalThis.loadScript", "Content/Monaco/ModuleKniSCode.js")]
+        public static partial System.Threading.Tasks.Task LoadScript(string url);
+    }
+
+    // host a blob js
+
+    // wwwroot/js/newFeature.js
+    //globalThis.myNewFunction = function(arg)
+    //{
+    //    return "Hello " + arg;
+    //};
+
+    // build a cs file
+
+    //    using System.Runtime.InteropServices.JavaScript;
+    //    public static partial class NewFeatureInterop
+    //    {
+    //        [JSImport("globalThis.myNewFunction", "js/newFeature.js")]
+    //        public static partial string MyNewFunction(string arg);
+    //    }
+
+    // run it
+
+    //await DynamicLoaderInterop.LoadScript("js/newFeature.js");
+    //    string result = NewFeatureInterop.MyNewFunction("World");
 }
