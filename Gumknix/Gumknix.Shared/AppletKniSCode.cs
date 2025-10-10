@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis.Emit;
 
 using Microsoft.Xna.Framework;
 
-using Gum.Converters;
 using Gum.DataTypes;
 using Gum.DataTypes.Variables;
 using Gum.Forms;
@@ -202,8 +201,6 @@ namespace Gumknix
             menuItemViewWordWrap.Visual.Width = 220;
             menuItemViewWordWrap.Visual.WidthUnits = DimensionUnitType.Absolute;
             menuItemView.Items.Add(menuItemViewWordWrap);
-            //menuItemViewWordWrap.Clicked += (s, e) =>
-            //{ _textBox.TextWrapping = (_textBox.TextWrapping == TextWrapping.NoWrap) ? TextWrapping.Wrap : TextWrapping.NoWrap; };
 
             MenuItem menuItemViewGenerated = new();
             menuItemViewGenerated.Header = "Generated .cs";
@@ -681,8 +678,6 @@ namespace Gumknix
 
             CSharpCompilation compilation = CSharpCompilation.Create(outputAssemblyName, syntaxTrees, metadataReferencesArray, compilationOptions);
 
-            //SemanticModel semanticModel = compilation.GetSemanticModel(syntaxTrees[0]);
-
             using MemoryStream ILMemoryStream = new();
             EmitResult emitResult = compilation.Emit(ILMemoryStream);
             for (int i = 0; i < emitResult.Diagnostics.Length; i++)
@@ -770,80 +765,7 @@ namespace Gumknix
         {
             SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
 
-            CompilationUnitSyntax root = syntaxTree.GetRoot() as CompilationUnitSyntax;
-            bool topLevelStatementsFound = false;
-            int lastUsingLine = -1;
-            int firstNonBlankLine = -1;
-            if (root != null)
-            {
-                for (int i = 0; i < root.Members.Count; i++)
-                {
-                    if (root.Members[i] is GlobalStatementSyntax)
-                    {
-                        topLevelStatementsFound = true;
-                        break;
-                    }
-                }
-
-                if (root.Usings.Count >= 1)
-                {
-                    UsingDirectiveSyntax lastUsing = root.Usings[^1];
-                    lastUsingLine = lastUsing.GetLocation().GetLineSpan().EndLinePosition.Line;
-                }
-            }
-
-            string[] allLines = sourceCode.Split(["\n", "\r\n"], StringSplitOptions.None);
-            string usingText = string.Join("\n", allLines, 0, lastUsingLine + 1);
-
-            if (topLevelStatementsFound)
-            {
-                for (int i = lastUsingLine + 1; i < allLines.Length; i++)
-                {
-                    if (!string.IsNullOrWhiteSpace(allLines[i]))
-                    {
-                        firstNonBlankLine = i;
-                        break;
-                    }
-                }
-
-                string indent = "                ";
-                string sourceText = string.Join($"\n{indent}", allLines, firstNonBlankLine, allLines.Length - firstNonBlankLine);
-
-                string wrappedSource = $"{usingText}\n\n";
-                wrappedSource +=
-                    """
-                    using System.Threading.Tasks;
-                    using global::Gumknix;
-                    using Console = PseudoSystem.Console;
-
-                    public class GumknixConsoleApplet
-                    {
-                        public static void GumknixEntryPoint(Gumknix.Gumknix gumknix)
-                        {
-                            Console Console = new();
-                            AppletConsole applet = gumknix.StartApplet(typeof(AppletConsole), [Console]) as AppletConsole;
-                            applet.StartTask(async () =>
-                            {
-                                try
-                                {
-                    """;
-                wrappedSource += $"\n{indent}{sourceText}\n";
-                wrappedSource +=
-                    """
-                                }
-                                catch(Exception e)
-                                {
-                                    gumknix.StartApplet(typeof(AppletKniopad), [e.Message]);
-                                }
-                            });
-                        }
-                    }
-                    """;
-
-                sourceCode = wrappedSource;
-                syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
-                root = syntaxTree.GetRoot() as CompilationUnitSyntax;
-            }
+            syntaxTree = ConvertTopLevelStatement(syntaxTree, cSharpParseOptions);
 
             //bool isGameBaseClassUsed = false;
             //IEnumerable<ClassDeclarationSyntax> classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
@@ -907,6 +829,79 @@ namespace Gumknix
             //    }
             //}
 
+            return syntaxTree;
+        }
+
+        private SyntaxTree ConvertTopLevelStatement(SyntaxTree syntaxTree, CSharpParseOptions cSharpParseOptions)
+        {
+            CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
+            List<GlobalStatementSyntax> globalStatements = [.. root.Members.OfType<GlobalStatementSyntax>()];
+
+            if (globalStatements.Count == 0)
+                return syntaxTree;
+
+            UsingDirectiveSyntax[] extraUsings =
+            [
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Threading")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Threading.Tasks")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("global::Gumknix")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.NameEquals("Console"), SyntaxFactory.ParseName("PseudoSystem.Console")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.NameEquals("ConsoleKeyInfo"), SyntaxFactory.ParseName("PseudoSystem.ConsoleKeyInfo")),
+                SyntaxFactory.UsingDirective(SyntaxFactory.NameEquals("ConsoleCancelEventArgs"), SyntaxFactory.ParseName("PseudoSystem.ConsoleCancelEventArgs"))
+            ];
+
+            SyntaxList<UsingDirectiveSyntax> usings = root.Usings;
+            SyntaxList<UsingDirectiveSyntax> allUsings = usings.AddRange(extraUsings);
+
+            StringBuilder wrappedSource = new();
+
+            wrappedSource.AppendLine("""
+                public static void GumknixEntryPoint(Gumknix.Gumknix gumknix)
+                {
+                    Console Console = new();
+                    AppletConsole applet = gumknix.StartApplet(typeof(AppletConsole), [Console]) as AppletConsole;
+                    applet.StartTask(async () =>
+                    {
+                        try
+                        {
+                """);
+
+            foreach (GlobalStatementSyntax globalMember in globalStatements)
+                wrappedSource.AppendLine(globalMember.ToFullString());
+
+            wrappedSource.AppendLine("""
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                        catch(Exception e)
+                        {
+                            gumknix.StartApplet(typeof(AppletKniopad), [e.Message]);
+                        }
+                    });
+                }
+                """);
+
+            List<MemberDeclarationSyntax> nonGlobalMembers = [.. root.Members.Where(member => member is not GlobalStatementSyntax)];
+            foreach (MemberDeclarationSyntax nonGlobalMember in nonGlobalMembers)
+                wrappedSource.AppendLine(nonGlobalMember.ToFullString());
+
+            SyntaxTree tempTree = CSharpSyntaxTree.ParseText(wrappedSource.ToString(), cSharpParseOptions);
+            SyntaxNode tempRoot = tempTree.GetRoot();
+            List<MemberDeclarationSyntax> members = tempRoot.DescendantNodes().OfType<MemberDeclarationSyntax>().ToList();
+
+            ClassDeclarationSyntax programClass = SyntaxFactory.ClassDeclaration("GumknixConsoleApplet")
+               .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+               .WithMembers(SyntaxFactory.List(members));
+
+            CompilationUnitSyntax newRoot = SyntaxFactory.CompilationUnit()
+                .WithUsings(allUsings)
+                .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(programClass))
+                .NormalizeWhitespace();
+
+            string sourceCode = newRoot.ToFullString();
+
+            syntaxTree = CSharpSyntaxTree.ParseText(sourceCode, cSharpParseOptions);
             return syntaxTree;
         }
 
