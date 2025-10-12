@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PseudoSystem
@@ -12,9 +13,7 @@ namespace PseudoSystem
     {
         public Console()
         {
-            inMemoryStream = new MemoryStream();
-            outMemoryStream = new MemoryStream();
-            errorMemoryStream = new MemoryStream();
+            CancellationTokenSource = new();
 
             inMemoryStream = new();
             outMemoryStream = new();
@@ -54,6 +53,9 @@ namespace PseudoSystem
 
             while (true)
             {
+                if (CancellationTokenSource.IsCancellationRequested)
+                    throw new OperationCanceledException();
+
                 if (consoleKeyBuffer.Count >= 1)
                 {
                     ConsoleKeyInfo key = consoleKeyBuffer[0];
@@ -65,7 +67,7 @@ namespace PseudoSystem
                     return key;
                 }
 
-                await Task.Delay(16);
+                await Task.Delay(16, CancellationTokenSource.Token);
             }
         }
 
@@ -175,9 +177,9 @@ namespace PseudoSystem
             CursorTop = top;
         }
 
-        public event ConsoleCancelEventHandler? CancelKeyPress;
+        public event ConsoleCancelEventHandler? CancelKeyPress; // to do
 
-        public bool TreatControlCAsInput { get; set; }
+        public bool TreatControlCAsInput { get; set; } // to do
 
         public Stream OpenStandardInput() => inMemoryStream;
         public Stream OpenStandardInput(int bufferSize) => inMemoryStream;
@@ -235,10 +237,13 @@ namespace PseudoSystem
 
             while (true)
             {
+                if (CancellationTokenSource.IsCancellationRequested)
+                    throw new OperationCanceledException();
+
                 int value = await Read();
                 if (value < 0)
                 {
-                    await Task.Delay(16);
+                    await Task.Delay(16, CancellationTokenSource.Token);
                     continue;
                 }
 
@@ -317,19 +322,21 @@ namespace PseudoSystem
             Out.Write(format, arg0, arg1, arg2);
         public void Write([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, params object?[]? arg) =>
             Out.Write(format, arg);
-        public void Write(bool value) => Out.Write(value);
-        public void Write(char value) => Out.Write(value);
-        public void Write(char[]? buffer) => Out.Write(buffer);
-        public void Write(char[] buffer, int index, int count) => Out.Write(buffer, index, count);
-        public void Write(double value) => Out.Write(value);
-        public void Write(decimal value) => Out.Write(value);
-        public void Write(float value) => Out.Write(value);
-        public void Write(int value) => Out.Write(value);
-        public void Write(uint value) => Out.Write(value);
-        public void Write(long value) => Out.Write(value);
-        public void Write(ulong value) => Out.Write(value);
-        public void Write(object? value) => Out.Write(value);
-        public void Write(string? value) => Out.Write(value);
+        public void Write(bool value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(char value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(char[]? buffer) { Out.Write(buffer); UpdateGridCells(); }
+        public void Write(char[] buffer, int index, int count) { Out.Write(buffer, index, count); UpdateGridCells(); }
+        public void Write(double value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(decimal value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(float value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(int value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(uint value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(long value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(ulong value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(object? value) { Out.Write(value); UpdateGridCells(); }
+        public void Write(string? value) { Out.Write(value); UpdateGridCells(); }
+
+        public CancellationTokenSource CancellationTokenSource { get; private set; } = new();
 
         private MemoryStream inMemoryStream;
         private MemoryStream outMemoryStream;
@@ -406,6 +413,8 @@ namespace PseudoSystem
 
             consoleKeyBuffer.AddRange(pressedKeys);
         }
+
+        public void OnCancelKeyPress(ConsoleCancelEventArgs e) => CancelKeyPress?.Invoke(this, e);
 
         public void NextLine()
         {

@@ -14,6 +14,7 @@ using MonoGameGum.GueDeriving;
 using RenderingLibrary.Graphics;
 using Console = PseudoSystem.Console;
 using ConsoleKeyInfo = PseudoSystem.ConsoleKeyInfo;
+using ConsoleCancelEventArgs = PseudoSystem.ConsoleCancelEventArgs;
 
 namespace Gumknix
 {
@@ -41,7 +42,8 @@ namespace Gumknix
         private List<ConsoleKeyInfo> keyBuffer = [];
         private double lastBlinkTime;
 
-        Task runningConsoleTask;
+        private Task runningConsoleTask;
+        public CancellationTokenSource CancellationTokenSource => console.CancellationTokenSource;
 
         private KeyboardState keyboardState;
         private KeyboardState lastKeyboardState;
@@ -122,9 +124,10 @@ namespace Gumknix
             runningConsoleTask = Task.Run(task);
             runningConsoleTask.ContinueWith(t =>
             {
-                console.WriteLine();
-                console.WriteLine();
-                console.WriteLine("Press any key to close this window . . .");
+                if (CancellationTokenSource.IsCancellationRequested == false)
+                    ShowCloseMessage();
+
+                console.Dispose();
                 keysUnreleasedSinceComplete = Keyboard.GetState().GetPressedKeys().ToList();
             });
         }
@@ -137,7 +140,10 @@ namespace Gumknix
             if (console.Title?.Length >= 1)
                 SetTitle(console.Title);
 
-            console.UpdateGridCells();
+            if ((runningConsoleTask?.IsCompleted == false) &&
+                (CancellationTokenSource.IsCancellationRequested == false))
+                console.UpdateGridCells();
+
             console.AddKeyPresses(keyBuffer);
             if (keyBuffer.Count >= 1)
                 lastBlinkTime = GumknixInstance.GameTime.TotalGameTime.TotalSeconds;
@@ -170,6 +176,23 @@ namespace Gumknix
                 PlayBeep(console.BeepRequested.Value.frequency, console.BeepRequested.Value.duration);
                 console.BeepRequested = null;
             }
+
+            if ((CancellationTokenSource.IsCancellationRequested == false) &&
+                (keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl)) &&
+                ((keyboardState.IsKeyDown(Keys.C) && (console.TreatControlCAsInput == false)) ||
+               keyboardState.IsKeyDown(Keys.Pause)))
+            {
+                ConsoleCancelEventArgs consoleCancelEventArgs = new()
+                {
+                    Cancel = false,
+                    SpecialKey = keyboardState.IsKeyDown(Keys.C) ? ConsoleSpecialKey.ControlC : ConsoleSpecialKey.ControlBreak
+                };
+
+                console.OnCancelKeyPress(consoleCancelEventArgs);
+                if (consoleCancelEventArgs.Cancel == false)
+                    ShowCloseMessage();
+            }
+
             if ((runningConsoleTask?.IsCompleted == true) && (keysUnreleasedSinceComplete != null))
                 CloseOnKeyPress();
 
@@ -312,7 +335,9 @@ namespace Gumknix
 
         protected override void Close()
         {
-            console.Dispose();
+            if (CancellationTokenSource.IsCancellationRequested == false)
+                CancellationTokenSource.Cancel();
+
             renderTarget.Dispose();
             spriteBatch.Dispose();
             contentManager.Dispose();

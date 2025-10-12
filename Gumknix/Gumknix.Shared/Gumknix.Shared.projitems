@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)KniSBuild\ProjectFile.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EmbeddedMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)KniSBuild\SolutionFileListBoxItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PseudoSystem\System.ConsoleCancelEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PseudoSystem\System.ConsoleKeyInfo.cs" />
     <Compile Include="..\Gumknix.Shared\AppletKniGameComponentRunner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AppletKniopad.cs" />
