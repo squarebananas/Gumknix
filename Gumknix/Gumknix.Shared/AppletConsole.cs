@@ -49,7 +49,7 @@ namespace Gumknix
         private KeyboardState lastKeyboardState;
         private List<Keys> keysUnreleasedSinceComplete;
 
-        ScrollBar scrollBar;
+        private ScrollBar scrollBar;
 
         private DynamicSoundEffectInstance beepSound;
 
@@ -201,6 +201,9 @@ namespace Gumknix
 
         private void WindowSizeChanged()
         {
+            console.LargestWindowWidth = (int)((GraphicalUiElement.CanvasWidth - 6 - scrollBar.ActualWidth) / cellSize.X);
+            console.LargestWindowHeight = (int)((GraphicalUiElement.CanvasHeight - TitleBarHeight - GumknixInstance.TaskBar.Height) / cellSize.Y);
+
             int maxX = (int)((Window.Visual.GetAbsoluteWidth() - 6 - scrollBar.ActualWidth) / cellSize.X);
             int maxY = (int)((Window.Visual.GetAbsoluteHeight() - TitleBarHeight) / cellSize.Y);
 
@@ -308,7 +311,7 @@ namespace Gumknix
                 for (int windowY = console.WindowTop; windowY < (console.WindowTop + console.WindowHeight); windowY++)
                 {
                     int scrollBarAdjust = (int)Math.Max(0, scrollBar.Maximum - scrollBar.Value);
-                    int wrappedBufferY = (windowY - scrollBarAdjust + console.BufferLineZero) % console.BufferHeight;
+                    int wrappedBufferY = (windowY - scrollBarAdjust + console.BufferStartLineIndex) % console.BufferHeight;
                     Console.ConsoleGridCell cell = console.ConsoleGridCells[windowX][wrappedBufferY];
 
                     Point position = new((windowX - console.WindowLeft) * cellSize.X,

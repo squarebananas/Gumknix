@@ -115,14 +115,6 @@ namespace PseudoSystem
 
         public void SetBufferSize(int width, int height)
         {
-            if (width < 0 || width >= short.MaxValue ||
-                height < 0 || height >= short.MaxValue)
-                throw new ArgumentOutOfRangeException((width < 0 || width >= short.MaxValue) ? nameof(width) : nameof(height),
-                    "The console buffer size must not be less than the current size and position of the console window, nor greater than or equal to short.MaxValue. ");
-            //"(Parameter '"+
-            //width + "')" + Environment.NewLine +
-            //"Actual value was - 1.'";
-
             BufferWidth = width;
             BufferHeight = height;
             ConsoleGridCells = CreateGrid(BufferWidth, BufferHeight);
@@ -145,8 +137,8 @@ namespace PseudoSystem
             WindowHeight = height;
         }
 
-        public int LargestWindowWidth { get; }
-        public int LargestWindowHeight { get; }
+        public int LargestWindowWidth { get; set; }
+        public int LargestWindowHeight { get; set; }
         public bool CursorVisible { get; set; } = true;
         public int CursorLeft { get; set; }
         public int CursorTop { get; set; }
@@ -257,7 +249,7 @@ namespace PseudoSystem
 
                 lineEntered += character;
 
-                int wrappedBufferY = (CursorTop + BufferLineZero) % BufferHeight;
+                int wrappedBufferY = (CursorTop + BufferStartLineIndex) % BufferHeight;
 
                 if (character == (int)ConsoleKey.Backspace)
                 {
@@ -361,70 +353,10 @@ namespace PseudoSystem
 
         public ConsoleGridCell[][] ConsoleGridCells { get; private set; }
 
-        public int BufferLineZero { get; private set; }
+        public int BufferStartLineIndex { get; private set; }
         public int TotalLinesWritten { get; private set; }
 
         public (int frequency, int duration)? BeepRequested { get; set; }
-
-        {
-            if (outMemoryStream.Position >= 1)
-            {
-                outMemoryStream.Position = 0;
-
-                while (true)
-                {
-                    int value = readOut.Read();
-                    if (value < 0)
-                        break;
-                    char character = (char)value;
-
-                    if (character == '\n')
-                    {
-                        NextLine();
-                        continue;
-                    }
-                    if (character == '\r')
-                    {
-                        CursorLeft = 0;
-                        continue;
-                    }
-
-                    int wrappedBufferY = (CursorTop + BufferLineZero) % BufferHeight;
-                    ConsoleGridCells[CursorLeft][wrappedBufferY] = new()
-                    {
-                        Character = character,
-                        ForegroundColor = ConsoleColorToColor(ForegroundColor),
-                        BackgroundColor = ConsoleColorToColor(BackgroundColor)
-                    };
-
-                    CursorLeft++;
-                    if (CursorLeft >= BufferWidth)
-                        NextLine();
-                }
-
-                outMemoryStream.SetLength(0);
-            }
-        }
-
-        public void AddKeyPresses(List<ConsoleKeyInfo> pressedKeys)
-        {
-            if (pressedKeys.Count == 0)
-                return;
-
-            consoleKeyBuffer.AddRange(pressedKeys);
-        }
-
-        public void OnCancelKeyPress(ConsoleCancelEventArgs e) => CancelKeyPress?.Invoke(this, e);
-
-        public void NextLine()
-        {
-            CursorLeft = 0;
-            if (CursorTop < (WindowHeight - 1))
-                CursorTop++;
-            else
-                BufferLineZero++;
-            TotalLinesWritten++;
-        }
 
         ConsoleGridCell[][] CreateGrid(int width, int height)
         {
@@ -445,20 +377,72 @@ namespace PseudoSystem
             return grid;
         }
 
-        //public void SyncOutToGrid()
-        //{
-        //    Out.Flush();
-        //    outMemoryStream.Position = 0;
-        //    using StreamReader streamReader = new StreamReader(outMemoryStream, OutputEncoding, leaveOpen: true);
-        //    string output = streamReader.ReadToEnd();
-        //    string[] lines = output.Split(["\r\n", "\n"], StringSplitOptions.None);
-        //    for (int lineIndex = 0; lineIndex < BufferHeight; lineIndex++)
-        //    {
-        //        string line = (lineIndex < lines.Length) ? lines[lineIndex] : null;
-        //        for (int charIndex = 0; charIndex < BufferWidth; charIndex++)
-        //            ConsoleGridCells[charIndex][lineIndex].Character = (charIndex < line?.Length) ? line[charIndex] : '\0';
-        //    }
-        //}
+        public void UpdateGridCells()
+        {
+            if (CancellationTokenSource.IsCancellationRequested)
+                throw new OperationCanceledException();
+
+            if (outMemoryStream.Position == 0)
+                return;
+
+            outMemoryStream.Position = 0;
+
+            while (true)
+            {
+                if (CancellationTokenSource.IsCancellationRequested)
+                    throw new OperationCanceledException();
+
+                int value = standardOutReader.Read();
+                if (value < 0)
+                    break;
+                char character = (char)value;
+
+                if (character == '\n')
+                {
+                    NextLine();
+                    continue;
+                }
+                if (character == '\r')
+                {
+                    CursorLeft = 0;
+                    continue;
+                }
+
+                int wrappedBufferY = (CursorTop + BufferStartLineIndex) % BufferHeight;
+                ConsoleGridCells[CursorLeft][wrappedBufferY] = new()
+                {
+                    Character = character,
+                    ForegroundColor = ConsoleColorToColor(ForegroundColor),
+                    BackgroundColor = ConsoleColorToColor(BackgroundColor)
+                };
+
+                CursorLeft++;
+                if (CursorLeft >= BufferWidth)
+                    NextLine();
+            }
+
+            outMemoryStream.SetLength(0);
+        }
+
+        public void AddKeyPresses(List<ConsoleKeyInfo> pressedKeys)
+        {
+            if (pressedKeys.Count == 0)
+                return;
+
+            consoleKeyBuffer.AddRange(pressedKeys);
+        }
+
+        public void OnCancelKeyPress(ConsoleCancelEventArgs e) => CancelKeyPress?.Invoke(this, e);
+
+        public void NextLine()
+        {
+            CursorLeft = 0;
+            if (CursorTop < (WindowHeight - 1))
+                CursorTop++;
+            else
+                BufferStartLineIndex++;
+            TotalLinesWritten++;
+        }
 
         public static Color ConsoleColorToColor(ConsoleColor consoleColor)
         {
