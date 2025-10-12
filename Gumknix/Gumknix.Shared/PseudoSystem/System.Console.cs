@@ -158,10 +158,70 @@ namespace PseudoSystem
             BeepRequested = new(frequency, duration);
             await Task.Delay(duration);
         }
+
+        public void MoveBufferArea(int sourceLeft, int sourceTop, int sourceWidth, int sourceHeight, int targetLeft, int targetTop) =>
+            MoveBufferArea(sourceLeft, sourceTop, sourceWidth, sourceHeight, targetLeft, targetTop, '\0', ForegroundColor, BackgroundColor);
+
         public void MoveBufferArea(int sourceLeft, int sourceTop, int sourceWidth, int sourceHeight, int targetLeft, int targetTop,
             char sourceChar, ConsoleColor sourceForeColor, ConsoleColor sourceBackColor)
-        { }
-        public void Clear() { }
+        {
+            UpdateGridCells();
+
+            if ((sourceLeft + sourceWidth) > WindowWidth)
+                throw new ArgumentOutOfRangeException(nameof(sourceWidth));
+            if ((sourceTop + sourceHeight) > WindowHeight)
+                throw new ArgumentOutOfRangeException(nameof(sourceHeight));
+            if ((targetLeft + sourceWidth) > WindowWidth)
+                throw new ArgumentOutOfRangeException(nameof(targetLeft));
+            if ((targetTop + sourceHeight) > WindowHeight)
+                throw new ArgumentOutOfRangeException(nameof(targetTop));
+
+            if (sourceLeft == targetLeft && sourceTop == targetTop)
+                return;
+
+            for (int x = 0; x < sourceWidth; x++)
+            {
+                for (int y = 0; y < sourceHeight; y++)
+                {
+                    int sourceX = (targetLeft > sourceLeft) ? ((sourceLeft + sourceWidth - 1) - x) : (x + sourceLeft);
+                    int sourceY = (targetTop > sourceTop) ? ((sourceTop + sourceHeight - 1) - y) : (y + sourceTop);
+                    int wrappedSourceY = (sourceY + BufferStartLineIndex) % BufferHeight;
+
+                    int destinationX = sourceX + (targetLeft - sourceLeft);
+                    int destinationY = sourceY + (targetTop - sourceTop);
+                    int wrappedDestinationY = (destinationY + BufferStartLineIndex) % BufferHeight;
+
+                    ConsoleGridCells[destinationX][wrappedDestinationY] = ConsoleGridCells[sourceX][wrappedSourceY];
+                    ConsoleGridCells[sourceX][wrappedSourceY] = new ConsoleGridCell
+                    {
+                        Character = sourceChar,
+                        ForegroundColor = ConsoleColorToColor(sourceForeColor),
+                        BackgroundColor = ConsoleColorToColor(sourceBackColor)
+                    };
+                }
+            }
+        }
+
+        public void Clear()
+        {
+            UpdateGridCells();
+            CursorLeft = 0;
+            CursorTop = 0;
+            for (int windowX = WindowLeft; windowX < (WindowLeft + WindowWidth); windowX++)
+            {
+                for (int windowY = WindowTop; windowY < (WindowTop + WindowHeight); windowY++)
+                {
+                    int wrappedBufferY = (windowY + BufferStartLineIndex) % BufferHeight;
+                    ConsoleGridCells[windowX][wrappedBufferY] = new()
+                    {
+                        Character = '\0',
+                        ForegroundColor = ConsoleColorToColor(ForegroundColor),
+                        BackgroundColor = ConsoleColorToColor(BackgroundColor)
+                    };
+                }
+            }
+        }
+
         public void SetCursorPosition(int left, int top)
         {
             UpdateGridCells();
