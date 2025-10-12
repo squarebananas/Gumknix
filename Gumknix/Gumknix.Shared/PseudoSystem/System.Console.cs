@@ -77,8 +77,8 @@ namespace PseudoSystem
         public bool IsErrorRedirected => Error != standardErrorWriter;
         public int CursorSize { get; set; } = 25;
 
-        public bool NumberLock { get; }
-        public bool CapsLock { get; }
+        public bool NumberLock { get; set; }
+        public bool CapsLock { get; set; }
 
         public ConsoleColor BackgroundColor
         {
@@ -145,11 +145,15 @@ namespace PseudoSystem
 
         public int LargestWindowWidth { get; }
         public int LargestWindowHeight { get; }
-        public bool CursorVisible { get; set; }
+        public bool CursorVisible { get; set; } = true;
         public int CursorLeft { get; set; }
         public int CursorTop { get; set; }
 
-        public (int Left, int Top) GetCursorPosition() { return (CursorLeft, CursorTop); }
+        public (int Left, int Top) GetCursorPosition()
+        {
+            UpdateGridCells();
+            return (CursorLeft, CursorTop);
+        }
 
         public string Title { get; set; }
 
@@ -166,6 +170,7 @@ namespace PseudoSystem
         public void Clear() { }
         public void SetCursorPosition(int left, int top)
         {
+            UpdateGridCells();
             CursorLeft = left;
             CursorTop = top;
         }
@@ -396,6 +401,9 @@ namespace PseudoSystem
 
         public void AddKeyPresses(List<ConsoleKeyInfo> pressedKeys)
         {
+            if (pressedKeys.Count == 0)
+                return;
+
             consoleKeyBuffer.AddRange(pressedKeys);
         }
 

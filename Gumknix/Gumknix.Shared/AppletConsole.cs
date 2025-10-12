@@ -38,13 +38,14 @@ namespace Gumknix
         private SpriteFont spriteFont;
         private Texture2D whitePixel;
 
-        List<ConsoleKeyInfo> keyBuffer = new();
+        private List<ConsoleKeyInfo> keyBuffer = [];
+        private double lastBlinkTime;
 
         Task runningConsoleTask;
 
-        KeyboardState keyboardState;
-        KeyboardState lastKeyboardState;
-        List<Keys> keysUnreleasedSinceComplete;
+        private KeyboardState keyboardState;
+        private KeyboardState lastKeyboardState;
+        private List<Keys> keysUnreleasedSinceComplete;
 
         ScrollBar scrollBar;
 
@@ -68,8 +69,23 @@ namespace Gumknix
             GameWindow gameWindow = (GumknixInstance.GameServiceContainer.GetService(
                 typeof(Microsoft.Xna.Platform.GameStrategy)) as Microsoft.Xna.Platform.GameStrategy).Window;
 
+            gameWindow.KeyDown += (s, e) =>
+            {
+                if ((int)e.Key >= 255)
+                    return;
+
+                bool shift = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
+                bool alt = keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
+                bool control = keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
+                keyBuffer.Add(new ConsoleKeyInfo('\0', (ConsoleKey)e.Key, shift, alt, control));
+                scrollBar.Value = scrollBar.Maximum;
+            };
+
             gameWindow.TextInput += (s, e) =>
             {
+                if ((keyBuffer.Count >= 1) && ((ConsoleKey)e.Key == keyBuffer[^1].Key))
+                    keyBuffer.RemoveAt(keyBuffer.Count - 1);
+
                 bool shift = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
                 bool alt = keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
                 bool control = keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
@@ -115,15 +131,20 @@ namespace Gumknix
 
         public override void Update()
         {
+            lastKeyboardState = keyboardState;
+            keyboardState = Keyboard.GetState();
+
             if (console.Title?.Length >= 1)
                 SetTitle(console.Title);
 
             console.UpdateGridCells();
             console.AddKeyPresses(keyBuffer);
+            if (keyBuffer.Count >= 1)
+                lastBlinkTime = GumknixInstance.GameTime.TotalGameTime.TotalSeconds;
             keyBuffer.Clear();
 
-            lastKeyboardState = keyboardState;
-            keyboardState = Keyboard.GetState();
+            console.CapsLock = keyboardState.CapsLock;
+            console.NumberLock = keyboardState.NumLock;
 
             if ((Window.ActualWidth != lastWindowSize.X) ||
                 (Window.ActualHeight != lastWindowSize.Y))
@@ -228,6 +249,7 @@ namespace Gumknix
             console.UpdateGridCells();
             CancellationTokenSource.Cancel();
         }
+
         private void CloseOnKeyPress()
         {
             for (int i = keysUnreleasedSinceComplete.Count - 1; i >= 0; i--)
@@ -273,6 +295,14 @@ namespace Gumknix
                     if (cell.Character != '\0')
                         spriteBatch.DrawString(spriteFont, cell.Character.ToString(), position.ToVector2(), cell.ForegroundColor.ToXNA());
                 }
+            }
+
+            if (console.CursorVisible &&
+                (((GumknixInstance.GameTime.TotalGameTime.TotalSeconds - lastBlinkTime) % 1d) < 0.5d))
+            {
+                Point position = new((console.CursorLeft - console.WindowLeft) * cellSize.X,
+                    (console.CursorTop - console.WindowTop) * cellSize.Y);
+                spriteBatch.DrawString(spriteFont, "|", position.ToVector2(), Console.ConsoleColorToColor(console.ForegroundColor).ToXNA());
             }
 
             spriteBatch.End();
