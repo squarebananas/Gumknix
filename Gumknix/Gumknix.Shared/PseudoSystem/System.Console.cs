@@ -16,18 +16,30 @@ namespace PseudoSystem
             outMemoryStream = new MemoryStream();
             errorMemoryStream = new MemoryStream();
 
-            In = new StreamReader(inMemoryStream);
-            Out = new StreamWriter(outMemoryStream) { AutoFlush = true };
-            Error = new StreamWriter(errorMemoryStream);
+            inMemoryStream = new();
+            outMemoryStream = new();
+            errorMemoryStream = new();
+
             InputEncoding = Encoding.UTF8;
             OutputEncoding = Encoding.UTF8;
 
             ConsoleGridCells = CreateGrid(BufferWidth, BufferHeight);
-            writeIn = new StreamWriter(inMemoryStream) { AutoFlush = true };
-            readOut = new StreamReader(outMemoryStream, OutputEncoding, leaveOpen: true);
+
+            standardInWriter = new StreamWriter(inMemoryStream) { AutoFlush = true };
+            standardInReader = new StreamReader(inMemoryStream, InputEncoding, leaveOpen: true);
+
+            standardOutWriter = new StreamWriter(outMemoryStream) { AutoFlush = true };
+            standardOutReader = new StreamReader(outMemoryStream, OutputEncoding, leaveOpen: true);
+
+            standardErrorWriter = new StreamWriter(errorMemoryStream) { AutoFlush = true };
+            standardErrorReader = new StreamReader(errorMemoryStream, OutputEncoding, leaveOpen: true);
+
+            In = standardInReader;
+            Out = standardOutWriter;
+            Error = standardErrorWriter;
         }
 
-        public TextReader In { get; }
+        public TextReader In { get; private set; }
         public Encoding InputEncoding { get; set; }
         public Encoding OutputEncoding { get; set; }
         public bool KeyAvailable => consoleKeyBuffer.Count >= 1;
@@ -47,8 +59,8 @@ namespace PseudoSystem
                     ConsoleKeyInfo key = consoleKeyBuffer[0];
                     consoleKeyBuffer.RemoveAt(0);
 
-                    if (!intercept)
-                        writeIn.Write(key.KeyChar);
+                    if (!IsInputRedirected && !intercept && key.KeyChar != '\0')
+                        standardInWriter.Write(key.KeyChar);
 
                     return key;
                 }
@@ -57,12 +69,12 @@ namespace PseudoSystem
             }
         }
 
-        public TextWriter Out { get; }
-        public TextWriter Error { get; }
+        public TextWriter Out { get; private set; }
+        public TextWriter Error { get; private set; }
 
-        public bool IsInputRedirected { get; }
-        public bool IsOutputRedirected { get; }
-        public bool IsErrorRedirected { get; }
+        public bool IsInputRedirected => In != standardInReader;
+        public bool IsOutputRedirected => Out != standardOutWriter;
+        public bool IsErrorRedirected => Error != standardErrorWriter;
         public int CursorSize { get; set; } = 25;
 
         public bool NumberLock { get; }
@@ -158,21 +170,28 @@ namespace PseudoSystem
 
         public bool TreatControlCAsInput { get; set; }
 
-        public Stream OpenStandardInput() { return Stream.Null; }
-        public Stream OpenStandardInput(int bufferSize) { return Stream.Null; }
-        public Stream OpenStandardOutput() { return Stream.Null; }
-        public Stream OpenStandardOutput(int bufferSize) { return Stream.Null; }
-        public Stream OpenStandardError() { return Stream.Null; }
-        public Stream OpenStandardError(int bufferSize) { return Stream.Null; }
-        public void SetIn(TextReader newIn) { }
-        public void SetOut(TextWriter newOut) { }
-        public void SetError(TextWriter newError) { }
+        public Stream OpenStandardInput() => inMemoryStream;
+        public Stream OpenStandardInput(int bufferSize) => inMemoryStream;
+        public Stream OpenStandardOutput() => outMemoryStream;
+        public Stream OpenStandardOutput(int bufferSize) => outMemoryStream;
+        public Stream OpenStandardError() => errorMemoryStream;
+        public Stream OpenStandardError(int bufferSize) => errorMemoryStream;
+        public void SetIn(TextReader newIn) => In = newIn;
+        public void SetOut(TextWriter newOut) => Out = newOut;
+        public void SetError(TextWriter newError) => Error = newError;
         public async Task<int> Read()
         {
             UpdateGridCells();
 
+            if (IsInputRedirected)
+            {
+                int redirectedValue = In.Read();
+                return redirectedValue;
+            }
+
             for (int i = 0; i < consoleKeyBuffer.Count; i++)
-                writeIn.Write(consoleKeyBuffer[i].KeyChar);
+                if (consoleKeyBuffer[i].KeyChar != '\0')
+                    standardInWriter.Write(consoleKeyBuffer[i].KeyChar);
             consoleKeyBuffer.Clear();
 
             long writePosition = inMemoryStream.Position;
@@ -195,6 +214,12 @@ namespace PseudoSystem
         public async Task<string?> ReadLine()
         {
             UpdateGridCells();
+
+            if (IsInputRedirected)
+            {
+                string redirectedValue = In.ReadLine();
+                return redirectedValue;
+            }
 
             string lineEntered = "";
             int startCursorLeft = CursorLeft;
@@ -301,8 +326,12 @@ namespace PseudoSystem
         private MemoryStream outMemoryStream;
         private MemoryStream errorMemoryStream;
 
-        private StreamWriter writeIn;
-        private StreamReader readOut;
+        private TextWriter standardInWriter;
+        private TextReader standardInReader;
+        private TextWriter standardOutWriter;
+        private TextReader standardOutReader;
+        private TextWriter standardErrorWriter;
+        private TextReader standardErrorReader;
         private int readInPosition = 0;
 
         private List<ConsoleKeyInfo> consoleKeyBuffer = [];
@@ -438,8 +467,13 @@ namespace PseudoSystem
             inMemoryStream?.Dispose();
             outMemoryStream?.Dispose();
             errorMemoryStream?.Dispose();
-            writeIn?.Dispose();
-            readOut?.Dispose();
+
+            standardInWriter?.Dispose();
+            standardInReader?.Dispose();
+            standardOutWriter?.Dispose();
+            standardOutReader?.Dispose();
+            standardErrorWriter?.Dispose();
+            standardErrorReader?.Dispose();
         }
     }
 }
