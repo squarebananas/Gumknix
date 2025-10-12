@@ -88,8 +88,7 @@ namespace Gumknix
 
         public AppletKniSCode(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
-            TempForceLoad = Microsoft.Xna.Framework.Audio.AudioChannels.Stereo.ToString() +
-                Microsoft.Xna.Framework.Media.VideoSoundtrackType.Dialog.ToString();
+            TempForceLoad = Microsoft.Xna.Framework.Media.VideoSoundtrackType.Dialog.ToString();
 
             base.Initialize(DefaultTitle, DefaultIcon, 1500, 800);
 
@@ -615,6 +614,9 @@ namespace Gumknix
             HashSet<string> assembliesRequired = [];
             assembliesRequired.Add("System.Private.CoreLib");
             assembliesRequired.Add("System.Runtime");
+
+            if (true) // to do
+                assembliesRequired.Add("System.Console");
 
             for (int i = 0; i < syntaxTrees.Count; i++)
             {

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -45,6 +47,8 @@ namespace Gumknix
         List<Keys> keysUnreleasedSinceComplete;
 
         ScrollBar scrollBar;
+
+        private DynamicSoundEffectInstance beepSound;
 
         public AppletConsole(Gumknix gumknix, object[] args = null) : base(gumknix, args)
         {
@@ -140,6 +144,11 @@ namespace Gumknix
                 scrollBar.Maximum = 0;
             }
 
+            if (console.BeepRequested.HasValue)
+            {
+                PlayBeep(console.BeepRequested.Value.frequency, console.BeepRequested.Value.duration);
+                console.BeepRequested = null;
+            }
             if ((runningConsoleTask?.IsCompleted == true) && (keysUnreleasedSinceComplete != null))
                 CloseOnKeyPress();
 
@@ -189,6 +198,36 @@ namespace Gumknix
             lastWindowSize = new Vector2(Window.ActualWidth, Window.ActualHeight);
         }
 
+        public void PlayBeep(int frequency, int duration) // to do
+        {
+            int sampleRate = 48000;
+            beepSound ??= new(sampleRate, AudioChannels.Mono);
+            beepSound.Volume = 0.5f;
+
+            int bufferSize = beepSound.GetSampleSizeInBytes(TimeSpan.FromMilliseconds(duration));
+            byte[] buffer = new byte[bufferSize];
+            for (int i = 0; i < bufferSize; i += 2)
+            {
+                double time = (double)i / sampleRate;
+                short currentSample = (short)(Math.Sign(Math.Sin(2 * Math.PI * frequency * time)) * short.MaxValue);
+                buffer[i + 0] = (byte)(currentSample % 256);
+                buffer[i + 1] = (byte)(currentSample / 256);
+            }
+
+            //if (beepSound.State == SoundState.Playing)
+            //    beepSound.Stop();
+            beepSound.SubmitBuffer(buffer);
+            beepSound.Play();
+        }
+
+        private void ShowCloseMessage()
+        {
+            console.WriteLine();
+            console.WriteLine();
+            console.WriteLine("Press any key to close this window . . .");
+            console.UpdateGridCells();
+            CancellationTokenSource.Cancel();
+        }
         private void CloseOnKeyPress()
         {
             for (int i = keysUnreleasedSinceComplete.Count - 1; i >= 0; i--)

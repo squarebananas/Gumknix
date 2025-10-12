@@ -153,9 +153,13 @@ namespace PseudoSystem
 
         public string Title { get; set; }
 
-        public void Beep() { }
-        public void Beep(int frequency, int duration) { }
-        public void MoveBufferArea(int sourceLeft, int sourceTop, int sourceWidth, int sourceHeight, int targetLeft, int targetTop) { }
+        public async Task Beep() => await Beep(frequency: 800, duration: 200);
+
+        public async Task Beep(int frequency, int duration)
+        {
+            BeepRequested = new(frequency, duration);
+            await Task.Delay(duration);
+        }
         public void MoveBufferArea(int sourceLeft, int sourceTop, int sourceWidth, int sourceHeight, int targetLeft, int targetTop,
             char sourceChar, ConsoleColor sourceForeColor, ConsoleColor sourceBackColor)
         { }
@@ -348,7 +352,8 @@ namespace PseudoSystem
         public int BufferLineZero { get; private set; }
         public int TotalLinesWritten { get; private set; }
 
-        public void UpdateGridCells()
+        public (int frequency, int duration)? BeepRequested { get; set; }
+
         {
             if (outMemoryStream.Position >= 1)
             {
