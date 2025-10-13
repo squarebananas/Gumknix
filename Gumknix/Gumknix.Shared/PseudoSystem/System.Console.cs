@@ -207,6 +207,7 @@ namespace PseudoSystem
             UpdateGridCells();
             CursorLeft = 0;
             CursorTop = 0;
+            TotalLinesWritten = 0;
             for (int windowX = WindowLeft; windowX < (WindowLeft + WindowWidth); windowX++)
             {
                 for (int windowY = WindowTop; windowY < (WindowTop + WindowHeight); windowY++)
