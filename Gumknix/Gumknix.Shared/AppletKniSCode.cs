@@ -608,6 +608,7 @@ namespace Gumknix
                     syntaxTrees.Add(fileSyntaxTree);
 
                     generatedCode = fileSyntaxTree.ToString();
+                    generatedCode = generatedCode.Replace("\r\n", "\n"); // todo required for gum issue
                 }
             }
 
@@ -894,7 +895,8 @@ namespace Gumknix
 
             ClassDeclarationSyntax programClass = SyntaxFactory.ClassDeclaration("GumknixConsoleApplet")
                .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-               .WithMembers(SyntaxFactory.List(members));
+               .WithMembers(SyntaxFactory.List(members))
+               .NormalizeWhitespace();
 
             CompilationUnitSyntax newRoot = SyntaxFactory.CompilationUnit()
                 .WithUsings(allUsings)
