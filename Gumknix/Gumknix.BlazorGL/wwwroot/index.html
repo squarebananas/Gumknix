@@ -86,6 +86,9 @@
         }
 
         window.initRenderJS = (instance) => {
+            if (!globalThis.Module)
+                globalThis.Module = Blazor.runtime.Module;
+
             window.theInstance = instance;
 
             // set initial canvas size
