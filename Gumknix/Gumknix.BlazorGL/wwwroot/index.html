@@ -89,6 +89,17 @@
             if (!globalThis.Module)
                 globalThis.Module = Blazor.runtime.Module;
 
+            if (typeof Blazor.platform.getArrayLength !== "function")
+            {
+                Object.assign(Blazor.platform,
+                {
+                    getArrayLength: function (arr) {
+                        var arrPtr = Blazor.platform.getArrayEntryPtr(arr, 0, 4);
+                        return Module.HEAP32[(arrPtr - 4) >> 2];
+                    }
+                });
+            }
+
             window.theInstance = instance;
 
             // set initial canvas size
